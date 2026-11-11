@@ -342,7 +342,7 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
   useEffect(() => {
     if (!open || gyro) return;
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
+      if (e.pointerType !== "mouse" || grab.current) return;
       const x = (e.clientX / window.innerWidth) * 2 - 1;
       const y = -((e.clientY / window.innerHeight) * 2 - 1);
       tilt.current = { x, y, at: performance.now() };
