@@ -11,3 +11,10 @@
 - [ ] Regeltests: 2FA verplicht, step-up 5 min, oude serial ongeldig na vervangen, juiste wallet-kaart
 - [ ] Ingelogd testen van de kaart-flows (wacht op e-mail/sms-instellingen voor verificatie)
 - [ ] Google Wallet echt testen (wacht op Google Wallet- en WALLET_ID_SECRET-sleutels)
+- [ ] Eigen code-doorlichting beveiliging (wallet, kaart, auth, API) naast de scan
+- [ ] Knoppen leesbaar overal (o.a. Google Wallet-knop bij Wallet/profielkaarten)
+- [ ] Twee stijlen op elke pagina: hoofdstijl (rustig, klassiek, fysieke knop met indruk-effect en schaduw) standaard + glasstijl (luxe); ontbrekende stukken en status-schakelaar die buiten kader valt
+- [ ] Alle widgets nakijken
+- [ ] Deelafbeeldingen (Snapchat e.a.): nette standaardkaders; anoniem bericht = NGL-stijl "stuur me een anoniem bericht"
+- [ ] Profielhub-pagina's betere ervaring
+- [ ] Nederlands nakijken op alle pagina's, vooral hoofdpagina; ontbrekende info op hoofdpagina aanvullen
