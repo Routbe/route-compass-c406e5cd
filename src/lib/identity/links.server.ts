@@ -73,7 +73,7 @@ function eventSql(linkId: string, authId: string, event: EventName, actor: Actor
 
 async function clientHashes(request?: Request | null) {
   if (!request) return { ip: null, ua: null };
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("cf-connecting-ip");
+  const ip = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const ua = request.headers.get("user-agent");
   return { ip: ip ? hex(await sha(`ip:${ip}`)) : null, ua: ua ? hex(await sha(`ua:${ua}`)) : null };
 }
