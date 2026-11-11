@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useServerFn } from "@tanstack/react-start";
-import { Camera, CreditCard, Loader2, Nfc, QrCode, RotateCw, ShieldCheck, Smartphone, UserPlus, Wallet, ZoomIn, ZoomOut } from "lucide-react";
+import { Camera, CreditCard, Loader2, Nfc, QrCode, RotateCw, ShieldCheck, Smartphone, Wallet, ZoomIn, ZoomOut } from "lucide-react";
 import { frontCardUrl } from "@/lib/wallet/card-front-code";
 import { Input } from "@/components/ui/input";
 import { GYRO_CALIBRATION_SAMPLES, GYRO_REST_MS, filterGyro, orientationToDegrees, orientationToTilt, SPIN_PER_FRAME_WIDTH, zoomFromWheel, zoomFromPinch, clampPan, clampZoom } from "./card-physics";
@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { downloadVCard } from "@/lib/vcard";
 import { createWalletPass, getCardLiveness, getMyCardFront, getSecureCardToken, getWalletCard, getWalletStatus, saveMyCardDesign, setMyCardFront, setMyCardFrozen, verifyCardLiveCode } from "@/lib/wallet/wallet.functions";
 import { pickCardView } from "@/lib/wallet/card-liveness";
 import { contrastRatio } from "@/lib/wallet/card-style";
@@ -18,6 +17,7 @@ import { checkCardText, PRIVACY_MESSAGE } from "@/lib/wallet/card-privacy";
 import { SECURE_ROTATE_MS } from "@/lib/wallet/card-token";
 import { CardKeysPanel } from "./CardKeysPanel";
 import { WalletVault } from "./WalletVault";
+import { CardSecurityPanel } from "./CardSecurityPanel";
 import type { WalletStatus } from "@/lib/wallet/wallet-pass";
 import { drawCardFaces, hasWebGL, type CardFaces } from "./card-faces";
 import type { CardFinish, LiveRef, SecureRef, TiltRef, ZoomRef, DragRef } from "./RoutCard3D";
@@ -74,6 +74,9 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [gyro, setGyro] = useState(false);
+  // Motion sensor only on touch devices: desktops rotate the card by dragging.
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => { setCoarse(window.matchMedia("(pointer: coarse)").matches); }, []);
   const tilt: TiltRef = useRef({ x: 0, y: 0, at: 0 });
   const [flatTilt, setFlatTilt] = useState({ x: 0, y: 0 });
   const live: LiveRef = useRef({ seed: [0.5, 0.5, 0.5, 0.5], expiresAt: 0, windowMs: 30_000 });
@@ -470,6 +473,7 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
         tilt.current = { ...tilt.current, at: performance.now() };
         return;
       }
+      if (webgl === false) setFlatTilt((t) => ({ x: Math.max(-1, Math.min(1, t.x + ((e.clientX - g.x) / r.width) * 2)), y: Math.max(-1, Math.min(1, t.y - ((e.clientY - g.y) / r.height) * 2)) }));
       drag.current.dx += ((e.clientX - g.x) / r.width) * SPIN_PER_FRAME_WIDTH;
       drag.current.dy += ((e.clientY - g.y) / r.height) * 1.2;
       g.x = e.clientX;
@@ -533,16 +537,6 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch {
       toast.error(t("wallet.failed"));
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const saveVcf = async () => {
-    if (!card) return;
-    setBusy("vcf");
-    try {
-      await downloadVCard({ handle: card.handle, displayName: card.displayName, tagline: card.subheader, avatarUrl: card.avatarPath, profileUrl: card.url });
     } finally {
       setBusy(null);
     }
@@ -631,7 +625,7 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
               {zoomed ? <ZoomOut className="h-3.5 w-3.5" aria-hidden /> : <ZoomIn className="h-3.5 w-3.5" aria-hidden />} {t("card.zoom", { defaultValue: "Loep" })}
             </Button>
           )}
-          {!gyro && <Button type="button" size="sm" variant="ghost" className="gap-1.5" onClick={() => void enableGyro()}><Smartphone className="h-3.5 w-3.5" aria-hidden /> {t("card.gyro")}</Button>}
+          {!gyro && coarse && <Button type="button" size="sm" variant="ghost" className="gap-1.5" onClick={() => void enableGyro()}><Smartphone className="h-3.5 w-3.5" aria-hidden /> {t("card.gyro")}</Button>}
         </div>
 
         {ownerState.owner ? (
@@ -660,10 +654,8 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
                 <p className="text-[11px] text-muted-foreground">{t("card.front.back")}</p>
               </fieldset>
             )}
-            <WalletVault only={vault === "key" ? ["key"] : undefined} />
-            <Button type="button" variant="outline" className="h-11 gap-2 rounded-full" disabled={!card || busy !== null} onClick={() => void saveVcf()}>
-              <UserPlus className="h-4 w-4" aria-hidden /> {t("card.vcf")}
-            </Button>
+            {card?.space !== "alias" && <CardSecurityPanel onChange={() => setLiveNonce((n) => n + 1)} />}
+            {vault !== "key" && <WalletVault only={["public", "stealth"]} />}
           </div>
         ) : (
         <div className="grid gap-2">
@@ -679,9 +671,6 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
           <Button type="button" variant="outline" className="h-11 gap-2 rounded-full" disabled={!card || busy !== null || status?.apple === false} onClick={() => void addApple()}>
             {busy === "apple" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Wallet className="h-4 w-4" aria-hidden />}
             {t("wallet.apple")}
-          </Button>
-          <Button type="button" variant="outline" className="h-11 gap-2 rounded-full" disabled={!card || busy !== null} onClick={() => void saveVcf()}>
-            <UserPlus className="h-4 w-4" aria-hidden /> {t("card.vcf")}
           </Button>
           {status && (!status.google || !status.apple) && <p className="text-center text-xs text-muted-foreground">{t("wallet.partly")}</p>}
         </div>
