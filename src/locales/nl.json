@@ -1765,7 +1765,7 @@
   "wallet.partly": "Niet elke wallet is al beschikbaar.",
   "wallet.title": "Toevoegen aan Wallet",
   "wallet.unavailable": "Wallet-passes zijn nog niet beschikbaar. Download intussen de QR-code of het visitekaartje via het deelmenu.",
-  "walletPage.description": "Bekijk, draai en beheer je kaart, wallet-passen en contactkaart op één plek.",
+  "walletPage.description": "Bekijk, draai en beheer je privé ROUT-kaart en je profielkaarten op één plek.",
   "walletPage.loading": "Kaart laden…",
   "walletPage.noHandle": "Kies eerst een gebruikersnaam om je kaart te maken.",
   "walletPage.tabCard": "ROUT-kaart",
@@ -1880,5 +1880,7 @@
   "console.aiPrompts.changes.markFull": "Volledige prompt is verwerkt",
   "console.aiPrompts.changes.body": "Je instellingen veranderden sinds je laatste prompt. Deze prompt past alleen dat aan, zonder je login opnieuw te bouwen.",
   "console.aiPrompts.changes.markDone": "Wijziging is verwerkt",
-  "console.aiPrompts.changes.none": "Geen wijzigingen sinds je laatste prompt."
+  "console.aiPrompts.changes.none": "Geen wijzigingen sinds je laatste prompt.",
+  "card.ownerMissing": "Je ROUT-kaart verschijnt zodra je profiel openbaar staat en geverifieerd is. Daarna zet je tweestapsverificatie aan en claim je je kaart.",
+  "card.descriptionKey": "Je privé ROUT-kaart in 3D. Sleep of tik om te draaien; je beveiligde QR staat op de achterkant en verschijnt pas na bevestiging."
 }

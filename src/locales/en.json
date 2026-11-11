@@ -1765,7 +1765,7 @@
   "wallet.partly": "Not every wallet is available yet.",
   "wallet.title": "Add to Wallet",
   "wallet.unavailable": "Wallet passes are not available yet. Meanwhile, download the QR code or business card from the share menu.",
-  "walletPage.description": "View, flip and manage your card, wallet passes and contact card in one place.",
+  "walletPage.description": "View, flip and manage your private ROUT card and your profile cards in one place.",
   "walletPage.loading": "Loading card…",
   "walletPage.noHandle": "Pick a username first to create your card.",
   "walletPage.tabCard": "ROUT card",
@@ -1880,5 +1880,7 @@
   "console.aiPrompts.changes.markFull": "Full prompt is done",
   "console.aiPrompts.changes.body": "Your settings changed since your last prompt. This prompt only applies that, without rebuilding your login.",
   "console.aiPrompts.changes.markDone": "Change is done",
-  "console.aiPrompts.changes.none": "No changes since your last prompt."
+  "console.aiPrompts.changes.none": "No changes since your last prompt.",
+  "card.ownerMissing": "Your ROUT card appears once your profile is public and verified. Then turn on two-step verification and claim your card.",
+  "card.descriptionKey": "Your private ROUT card in 3D. Drag or tap to flip; your secure QR is on the back and only appears after you confirm it's you."
 }
