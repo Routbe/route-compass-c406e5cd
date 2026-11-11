@@ -661,7 +661,7 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
         <div className="grid gap-2">
           <Button
             type="button"
-            className="h-11 gap-2 rounded-full bg-foreground text-background hover:bg-foreground/90"
+            className="h-11 gap-2 rounded-full"
             disabled={!card || busy !== null || status?.google === false}
             onClick={() => void addGoogle()}
           >
