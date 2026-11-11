@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { withStepUp } from "@/components/auth/StepUpDialog";
 import { createWalletPass, getCardLiveness, getMyCardFront, getSecureCardToken, getWalletCard, getWalletStatus, saveMyCardDesign, setMyCardFront, setMyCardFrozen, verifyCardLiveCode } from "@/lib/wallet/wallet.functions";
 import { pickCardView } from "@/lib/wallet/card-liveness";
 import { contrastRatio } from "@/lib/wallet/card-style";
@@ -293,7 +294,7 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
     if (next && !window.confirm(t("card.freezeConfirm", { defaultValue: "Kaart bevriezen? Alle QR- en live-codes worden meteen ongeldig tot je weer ontdooit." }))) return;
     setBusy("freeze");
     try {
-      await freezeCard({ data: { frozen: next, space } });
+      await withStepUp(() => freezeCard({ data: { frozen: next, space } }), "card_lifecycle");
       toast.success(next ? t("card.frozen", { defaultValue: "Kaart bevroren." }) : t("card.unfrozen", { defaultValue: "Kaart weer actief." }));
       setLiveNonce((n) => n + 1);
     } catch {

@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Ban, Eye, EyeOff, Loader2, Lock, RefreshCw, ShieldAlert, ShieldCheck, Wallet } from "lucide-react";
+import { Ban, Snowflake, Sun, Eye, EyeOff, Loader2, Lock, RefreshCw, ShieldAlert, ShieldCheck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { withStepUp } from "@/components/auth/StepUpDialog";
-import { blockMyCard, createVaultPass, getMyCardSecurity, lockMyCard, replaceMyCard, unlockMyCard } from "@/lib/wallet/wallet.functions";
+import { blockMyCard, createVaultPass, getMyCardSecurity, lockMyCard, replaceMyCard, setMyCardFrozen, unlockMyCard } from "@/lib/wallet/wallet.functions";
 
 type Sec = Awaited<ReturnType<typeof getMyCardSecurity>>;
+
+const CONFIRM = {
+  freeze: { title: "Kaart tijdelijk bevriezen?", body: "Alle QR-codes, live-codes, de wallet-sleutel en NFC werken meteen niet meer, tot je zelf ontdooit. Handig als je je kaart even kwijt bent.", action: "Bevriezen" },
+  thaw: { title: "Kaart weer activeren?", body: "Doe dit alleen als je je kaart terug hebt. Daarna werken je codes en wallet-sleutel weer.", action: "Ontdooien" },
+  block: { title: "Kaart definitief blokkeren?", body: "Gebruik dit als je kaart gestolen is. Het nummer, alle codes, de wallet-sleutel en gekoppelde fysieke kaarten werken meteen nergens meer. Dit kan niet ongedaan.", action: "Blokkeren" },
+  replace: { title: "Kaart vervangen?", body: "Je krijgt een nieuw kaartnummer en een nieuwe sleutel. De oude kaart, oude QR-codes en NFC werken nergens meer.", action: "Vervangen" },
+} as const;
 
 /**
  * Owner controls for the private ROUT card: 2FA gate, fresh verification before
@@ -22,9 +29,10 @@ export function CardSecurityPanel({ onChange }: { onChange?: () => void }) {
   const block = useServerFn(blockMyCard);
   const replace = useServerFn(replaceMyCard);
   const issue = useServerFn(createVaultPass);
+  const freeze = useServerFn(setMyCardFrozen);
   const [sec, setSec] = useState<Sec | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<"block" | "replace" | null>(null);
+  const [confirm, setConfirm] = useState<"block" | "replace" | "freeze" | "thaw" | null>(null);
   const [now, setNow] = useState(Date.now());
 
   const refresh = useCallback(async () => {
@@ -60,6 +68,11 @@ export function CardSecurityPanel({ onChange }: { onChange?: () => void }) {
     const r = await withStepUp(() => block({ data: { reason: "lost" } }), "card_lifecycle");
     if (!r.ok) throw new Error("Blokkeren lukte niet.");
     toast.success("Je kaart is geblokkeerd. Alle codes en de wallet-sleutel werken niet meer.");
+    await refresh(); onChange?.();
+  });
+  const doFreeze = (frozen: boolean) => run("freeze", async () => {
+    await withStepUp(() => freeze({ data: { frozen, space: "root" } }), "card_lifecycle");
+    toast.success(frozen ? "Je kaart is bevroren. Codes, QR en wallet-sleutel werken tijdelijk niet." : "Je kaart is weer actief.");
     await refresh(); onChange?.();
   });
   const doReplace = () => run("replace", async () => {
@@ -120,20 +133,21 @@ export function CardSecurityPanel({ onChange }: { onChange?: () => void }) {
         </Button>
       )}
       {state === "active" && !sec.wallet.google && <p className="text-[11px] text-muted-foreground">Google Wallet is nog niet ingesteld door de beheerder.</p>}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
+        <Button variant="outline" size="sm" className="gap-1.5" disabled={busy !== null || state === "blocked" || state === "unavailable"} onClick={() => setConfirm(state === "frozen" ? "thaw" : "freeze")}>{state === "frozen" ? <Sun className="h-3.5 w-3.5" aria-hidden /> : <Snowflake className="h-3.5 w-3.5" aria-hidden />} {state === "frozen" ? "Ontdooien" : "Bevriezen"}</Button>
         <Button variant="destructive" size="sm" className="gap-1.5" disabled={busy !== null || state === "blocked"} onClick={() => setConfirm("block")}><Ban className="h-3.5 w-3.5" aria-hidden /> Blokkeren</Button>
         <Button variant="outline" size="sm" className="gap-1.5" disabled={busy !== null} onClick={() => setConfirm("replace")}><RefreshCw className="h-3.5 w-3.5" aria-hidden /> Vervangen</Button>
       </div>
-      <p className="text-[11px] text-muted-foreground">Elke actie vraagt een nieuwe controle met je passkey, sms, herstelcode of wachtwoord, en komt in je activiteitenlog.</p>
+      <p className="text-[11px] text-muted-foreground">Elke actie vraagt een nieuwe controle met je passkey, sms, herstelcode of wachtwoord, geldt maar één keer en komt in je activiteitenlog.</p>
       <AlertDialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{confirm === "block" ? "Kaart definitief blokkeren?" : "Kaart vervangen?"}</AlertDialogTitle>
-            <AlertDialogDescription>{confirm === "block" ? "Gebruik dit als je kaart verloren of gestolen is. Het nummer, alle codes, de wallet-sleutel en gekoppelde fysieke kaarten werken meteen nergens meer. Dit kan niet ongedaan." : "Je krijgt een nieuw kaartnummer en een nieuwe sleutel. De oude kaart, oude QR-codes en NFC werken nergens meer."}</AlertDialogDescription>
+            <AlertDialogTitle>{CONFIRM[confirm ?? "block"].title}</AlertDialogTitle>
+            <AlertDialogDescription>{CONFIRM[confirm ?? "block"].body}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { const c = confirm; setConfirm(null); void (c === "block" ? doBlock() : doReplace()); }}>{confirm === "block" ? "Blokkeren" : "Vervangen"}</AlertDialogAction>
+            <AlertDialogAction onClick={() => { const c = confirm; setConfirm(null); void (c === "block" ? doBlock() : c === "replace" ? doReplace() : doFreeze(c === "freeze")); }}>{CONFIRM[confirm ?? "block"].action}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

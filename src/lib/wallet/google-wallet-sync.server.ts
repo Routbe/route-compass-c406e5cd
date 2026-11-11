@@ -76,3 +76,24 @@ export async function syncGoogleCardQuietly(card: WalletCardPayload, origin: str
   if (out.error) console.warn("[wallet] Google pass sync:", out.error);
   return out;
 }
+
+/**
+ * Switches an already-saved Google Wallet key pass on or off (block, freeze, replace).
+ * Best-effort and time-boxed: the database decision is already final and every verify
+ * path refuses the key; this only makes the phone show the pass as inactive too.
+ */
+export async function setGoogleKeyPassState(keySerials: string[], state: "ACTIVE" | "INACTIVE", env: Record<string, string | undefined>, ms = 4000, f: FetchLike = fetch): Promise<void> {
+  if (keySerials.length === 0) return;
+  const { googleWalletConfig } = await import("./wallet-pass");
+  const cfg = googleWalletConfig(env);
+  if (!cfg) return;
+  const work = (async () => {
+    const token = await accessToken(cfg, f);
+    await Promise.all(keySerials.map(async (serial) => {
+      const id = `${cfg.issuerId}.${serial}`;
+      const res = await f(`${API}/loyaltyObject/${encodeURIComponent(id)}`, { method: "PATCH", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, body: JSON.stringify({ state }) });
+      if (!res.ok && res.status !== 404) console.warn("[wallet] key pass state:", res.status);
+    }));
+  })().catch((e) => console.warn("[wallet] key pass state:", e instanceof Error ? e.message.slice(0, 120) : "failed"));
+  await Promise.race([work, new Promise((r) => setTimeout(r, ms))]);
+}
