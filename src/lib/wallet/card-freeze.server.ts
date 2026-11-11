@@ -132,22 +132,6 @@ export async function cardGeneration(userId: string): Promise<number> {
   }
 }
 
-/** Starts a new card generation for a replacement; returns the new generation. */
-export async function nextCardGeneration(userId: string): Promise<number> {
-  try {
-    const rows = await sql.query(
-      `insert into public.rout_card_generations (user_id, generation) values ($1::uuid, 1)
-       on conflict (user_id) do update set generation = rout_card_generations.generation + 1, replaced_at = now()
-       returning generation`,
-      [userId],
-    );
-    return Number(rows[0]?.generation);
-  } catch (err) {
-    if (missingSchema(err) || /rout_card_generations/.test(String((err as Error)?.message))) throw notReady();
-    throw err;
-  }
-}
-
 export async function readCardDesign(serial: string): Promise<Record<string, unknown> | null> {
   try {
     const rows = await sql.query("select public.rout_card_design($1) as d", [serial]);
