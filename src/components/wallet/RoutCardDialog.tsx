@@ -666,7 +666,7 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
             onClick={() => void addGoogle()}
           >
             {busy === "google" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Wallet className="h-4 w-4" aria-hidden />}
-            Add to Google Wallet
+            {t("wallet.google")}
           </Button>
           <Button type="button" variant="outline" className="h-11 gap-2 rounded-full" disabled={!card || busy !== null || status?.apple === false} onClick={() => void addApple()}>
             {busy === "apple" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Wallet className="h-4 w-4" aria-hidden />}
