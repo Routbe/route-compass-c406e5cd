@@ -16,8 +16,8 @@
   --m-radius-pill: 9999px;
   --m-press: 2px;
   --m-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  /* Key travel: fast with a tiny spring overshoot on release, like a keycap. */
-  --m-key-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Key travel: quick and firm, no bounce — a classic keyboard key. */
+  --m-key-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --m-surface: hsl(var(--card));
   --m-overlay: hsl(var(--popover));
   --m-page: hsl(var(--background));
@@ -29,37 +29,31 @@
   --m-action-shadow: var(--m-press) var(--m-press) 0 0 oklch(0.12 0 0);
   --m-selected: hsl(var(--foreground));
   --m-selected-ink: hsl(var(--background));
-  /* Keycaps. Primary: strong colour cap on a darker wall of the same colour. */
+  /* Keycaps: a solid cap on a hard wall. No sheen, no gradient, no blurred shadow. */
   --m-key-travel: 3px;
-  --m-key-wall: color-mix(in oklab, hsl(var(--primary)) 58%, oklch(0.1 0 0));
-  --m-key-top: linear-gradient(180deg, color-mix(in oklab, hsl(var(--primary)) 86%, oklch(1 0 0)) 0%, hsl(var(--primary)) 55%, color-mix(in oklab, hsl(var(--primary)) 92%, oklch(0 0 0)) 100%);
-  --m-key-lit: oklch(1 0 0 / 0.32);
-  --m-key-contact: oklch(0 0 0 / 0.26);
-  --m-key-ambient: oklch(0 0 0 / 0.18);
-  --m-key-shadow: inset 0 1px 0 0 var(--m-key-lit), 0 var(--m-key-travel) 0 0 var(--m-key-wall), 0 calc(var(--m-key-travel) + 2px) 5px -1px var(--m-key-contact), 0 10px 16px -10px var(--m-key-ambient);
-  --m-key-shadow-down: inset 0 1px 0 0 oklch(1 0 0 / 0.14), inset 0 2px 5px 0 oklch(0 0 0 / 0.22), 0 0 0 0 var(--m-key-wall), 0 1px 1px 0 var(--m-key-contact);
+  --m-key-wall: color-mix(in oklab, hsl(var(--primary)) 55%, oklch(0.1 0 0));
+  --m-key-top: none;
+  --m-key-shadow: 0 var(--m-key-travel) 0 0 var(--m-key-wall);
+  --m-key-shadow-down: 0 0 0 0 var(--m-key-wall);
   /* Secondary: neutral cap on a quiet wall, lower travel. */
   --m-cap-travel: 2px;
-  --m-cap-wall: hsl(var(--foreground) / 0.2);
-  --m-cap-top: linear-gradient(180deg, hsl(var(--card)) 0%, color-mix(in oklab, hsl(var(--card)) 93%, hsl(var(--foreground))) 100%);
-  --m-cap-lit: oklch(1 0 0 / 0.85);
-  --m-cap-shadow: inset 0 1px 0 0 var(--m-cap-lit), 0 var(--m-cap-travel) 0 0 var(--m-cap-wall), 0 calc(var(--m-cap-travel) + 2px) 4px -1px oklch(0 0 0 / 0.14), 0 8px 12px -9px oklch(0 0 0 / 0.16);
-  --m-cap-shadow-down: inset 0 1px 3px 0 oklch(0 0 0 / 0.14), 0 0 0 0 var(--m-cap-wall), 0 1px 1px 0 oklch(0 0 0 / 0.1);
+  --m-cap-wall: hsl(var(--foreground) / 0.24);
+  --m-cap-top: none;
+  --m-cap-shadow: 0 var(--m-cap-travel) 0 0 var(--m-cap-wall);
+  --m-cap-shadow-down: 0 0 0 0 var(--m-cap-wall);
+  /* Keys drawn inside their own box (never clipped by a list or card edge). */
+  --m-inset-key: inset 0 -2px 0 0 var(--m-cap-wall);
+  --m-inset-key-down: inset 0 0 0 0 var(--m-cap-wall);
 }
-/* Black on black disappears: dark mode casts a dimmed light edge instead. */
+/* Black on black disappears: dark mode uses a lighter hard wall instead. */
 :root.dark[data-workspace-ui="internal"][data-theme="mechanical"] {
   --m-hairline: hsl(var(--foreground) / 0.11);
   --m-edge: hsl(var(--foreground) / 0.2);
   --m-action-edge: hsl(var(--foreground) / 0.55);
   --m-action-shadow: var(--m-press) var(--m-press) 0 0 hsl(var(--foreground) / 0.32);
   --m-hover: hsl(var(--foreground) / 0.08);
-  --m-key-wall: color-mix(in oklab, hsl(var(--primary)) 52%, oklch(0 0 0));
-  --m-key-lit: oklch(1 0 0 / 0.22);
-  --m-key-contact: oklch(0 0 0 / 0.6);
-  --m-key-ambient: oklch(0 0 0 / 0.5);
-  --m-cap-wall: oklch(0 0 0 / 0.65);
-  --m-cap-lit: oklch(1 0 0 / 0.08);
-  --m-cap-top: linear-gradient(180deg, color-mix(in oklab, hsl(var(--card)) 90%, oklch(1 0 0)) 0%, hsl(var(--card)) 100%);
+  --m-key-wall: color-mix(in oklab, hsl(var(--primary)) 45%, oklch(0 0 0));
+  --m-cap-wall: hsl(var(--foreground) / 0.3);
 }
 
 /* The wallet vault draws its own hardware keys in every material, so it is a scope limit too. */
@@ -114,7 +108,7 @@
     transition: background-color 120ms var(--m-ease), border-color 120ms var(--m-ease), color 120ms var(--m-ease), translate 75ms var(--m-key-ease), box-shadow 75ms var(--m-key-ease) !important;
   }
   .spatial-button[data-spatial-control="default"]:not([data-spatial-size="icon"]) {
-    background-image: var(--m-key-top) !important;
+    background-image: none !important;
     border-color: var(--m-key-wall) !important;
   }
   .spatial-button[data-spatial-control="destructive"]:not([data-spatial-size="icon"]) {
@@ -200,7 +194,8 @@
 
   /* Secondary keys: neutral caps, lower profile, 2px travel. Ghost keys only dip. */
   .spatial-button:is([data-spatial-control="outline"], [data-spatial-control="soft"], [data-spatial-control="secondary"]):not([data-spatial-size="icon"]) {
-    background-image: var(--m-cap-top) !important;
+    background-image: none !important;
+    background-color: var(--m-surface) !important;
     border-color: var(--m-edge) !important;
     box-shadow: var(--m-cap-shadow) !important;
     margin-bottom: var(--m-cap-travel);
@@ -219,7 +214,7 @@
   [data-tactile] {
     border: 1px solid var(--m-edge) !important;
     background-color: var(--m-surface) !important;
-    background-image: var(--m-cap-top) !important;
+    background-image: none !important;
     box-shadow: var(--m-cap-shadow) !important;
     transition: translate 75ms var(--m-key-ease), box-shadow 75ms var(--m-key-ease), background-color 120ms var(--m-ease) !important;
   }
@@ -245,6 +240,17 @@
   :is(.spatial-track, [role="tablist"], [role="group"], [role="radiogroup"], [role="toolbar"], .spatial-control-pill) :is(.spatial-button, [data-tactile]):not(:disabled):active {
     translate: 0 1px;
     box-shadow: var(--m-cap-shadow-down) !important;
+  }
+
+  /* Plain bordered buttons (tiles, rows, chips) get the same key: a hard inner
+     bottom edge that disappears when pressed. Drawn inset, so no parent clips it. */
+  [data-hardware-ui] button[class~="border"]:not(.spatial-button):not([data-tactile]):not([role="tab"]):not([role="switch"]):not([role="checkbox"]):not([role="radio"]):not([aria-pressed="true"]) {
+    box-shadow: var(--m-inset-key) !important;
+    transition: translate 75ms var(--m-key-ease), box-shadow 75ms var(--m-key-ease), background-color 120ms var(--m-ease), border-color 120ms var(--m-ease) !important;
+  }
+  [data-hardware-ui] button[class~="border"]:not(.spatial-button):not([data-tactile]):not([role="tab"]):not([role="switch"]):not(:disabled):active {
+    translate: 0 1px;
+    box-shadow: var(--m-inset-key-down) !important;
   }
 
   /* 6 — Folders: one card per folder. Cards nested inside an open folder are
