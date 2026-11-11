@@ -148,7 +148,8 @@ if (!i18next.isInitialized) {
     interpolation: { escapeValue: false },
     returnNull: false,
     returnEmptyString: false,
-    parseMissingKeyHandler: (key) => humaniseKey(key),
+    // A written default (usually Dutch) beats a guessed label like "Verify Label".
+    parseMissingKeyHandler: (key, defaultValue) => (typeof defaultValue === "string" && defaultValue.trim() ? defaultValue : humaniseKey(key)),
   });
 }
 

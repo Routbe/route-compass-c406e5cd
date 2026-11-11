@@ -27,10 +27,11 @@ const toCal = (r: Row): RoutCalendar => ({
 /** The member's own calendars (RLS: owner only). */
 export const listMyCalendars = createServerFn({ method: "GET" })
   .middleware([requireAuth])
-  .handler(async (): Promise<RoutCalendar[]> => {
+  .handler(async ({ context }): Promise<RoutCalendar[]> => {
     const { sql } = await import("@/lib/neon");
+    // Owner predicate on top of RLS: never rely on one layer for ownership.
     const rows = (await sql`select id, mode, public_id, title, event_type_id, is_active, created_at
-      from public.rout_calendars order by created_at desc limit 100`) as Row[];
+      from public.rout_calendars where user_id = ${context.userId}::uuid order by created_at desc limit 100`) as Row[];
     return rows.map(toCal);
   });
 
@@ -56,6 +57,11 @@ export const createCalendar = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<RoutCalendar> => {
     const { sql } = await import("@/lib/neon");
     const { nanoid } = await import("nanoid");
+    // A calendar may only point at one of the member's own event types.
+    if (data.eventTypeId) {
+      const own = (await sql`select 1 from public.booking_event_types where id = ${data.eventTypeId}::uuid and user_id = ${context.userId}::uuid`) as Row[];
+      if (!own.length) throw new Error("Dit afspraaktype is niet van jou.");
+    }
     const rows = (await sql`insert into public.rout_calendars (user_id, mode, public_id, title, event_type_id)
       values (${context.userId}, ${data.mode}, ${nanoid(16)}, ${data.title}, ${data.eventTypeId})
       returning id, mode, public_id, title, event_type_id, is_active, created_at`) as Row[];
@@ -65,18 +71,18 @@ export const createCalendar = createServerFn({ method: "POST" })
 export const setCalendarActive = createServerFn({ method: "POST" })
   .middleware([requireAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid(), active: z.boolean() }).parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { sql } = await import("@/lib/neon");
-    await sql`update public.rout_calendars set is_active = ${data.active}, updated_at = now() where id = ${data.id}`;
+    await sql`update public.rout_calendars set is_active = ${data.active}, updated_at = now() where id = ${data.id} and user_id = ${context.userId}::uuid`;
     return { ok: true };
   });
 
 export const deleteCalendar = createServerFn({ method: "POST" })
   .middleware([requireAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { sql } = await import("@/lib/neon");
-    await sql`delete from public.rout_calendars where id = ${data.id}`;
+    await sql`delete from public.rout_calendars where id = ${data.id} and user_id = ${context.userId}::uuid`;
     return { ok: true };
   });
 

@@ -1,15 +1,20 @@
 import { INTEGRATIONS } from "@/lib/integrations-catalog";
 /** Live-status visibility: some integrations only show while (recently) in use. Browser-safe. */
-const HOUR = 3600_000;
+const MIN = 60_000;
+const HOUR = 60 * MIN;
 
-/** Providers with an activity window; others (chess, wallets, RSS) always show. */
+/**
+ * Live blocks appear only while the member is active or was very recently:
+ * just pushed code, just posted. Profile cards (chess, wallets, RSS) are not live and always show.
+ */
 export const LIVE_WINDOW_MS: Record<string, number> = {
-  github: 24 * HOUR,
-  gitlab: 24 * HOUR,
-  // Fediverse: only while the newest post is less than a day old.
-  mastodon: 24 * HOUR,
-  bluesky: 24 * HOUR,
-  wsocial: 24 * HOUR,
+  // Code: only right after a push/edit.
+  github: 60 * MIN,
+  gitlab: 60 * MIN,
+  // Posts: only while the newest post is a few hours old.
+  mastodon: 3 * HOUR,
+  bluesky: 3 * HOUR,
+  wsocial: 3 * HOUR,
 };
 
 export function isLiveActive(provider: string, lastActiveAt: string | null | undefined, now = Date.now()): boolean {

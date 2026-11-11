@@ -3,12 +3,16 @@ import { isLiveActive, isSpotifyVisible } from "@/lib/live-presence-rules";
 
 const now = Date.parse("2026-10-15T12:00:00Z");
 describe("live presence windows", () => {
-  it("GitHub shows with activity in the last 24 hours", () => {
-    expect(isLiveActive("github", "2026-10-15T00:00:00Z", now)).toBe(true);
+  it("GitHub shows right after a push (within an hour)", () => {
+    expect(isLiveActive("github", "2026-10-15T11:20:00Z", now)).toBe(true);
   });
-  it("GitHub hides after 24 hours without activity", () => {
-    expect(isLiveActive("github", "2026-10-14T11:00:00Z", now)).toBe(false);
+  it("GitHub hides once the last activity is more than an hour old", () => {
+    expect(isLiveActive("github", "2026-10-15T10:30:00Z", now)).toBe(false);
     expect(isLiveActive("github", null, now)).toBe(false);
+  });
+  it("A post shows for 3 hours, then hides", () => {
+    expect(isLiveActive("bluesky", "2026-10-15T09:30:00Z", now)).toBe(true);
+    expect(isLiveActive("mastodon", "2026-10-15T08:30:00Z", now)).toBe(false);
   });
   it("Chess integrations are not limited", () => {
     expect(isLiveActive("lichess", null, now)).toBe(true);

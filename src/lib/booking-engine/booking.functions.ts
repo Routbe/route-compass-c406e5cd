@@ -39,7 +39,8 @@ export const createBooking = createServerFn({ method: "POST" })
     await (await import("@/lib/platform-features.server")).assertPlatformFeature("bookings");
     const { hitRateLimit } = await import("@/lib/rate-limit-db.server");
     const { getRequestHeader } = await import("@tanstack/react-start/server");
-    const ip = getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    // The edge-set client IP first: a visitor can write their own x-forwarded-for.
+    const ip = (getRequestHeader("cf-connecting-ip") ?? getRequestHeader("x-real-ip") ?? getRequestHeader("x-forwarded-for")?.split(",")[0] ?? "unknown").trim();
     const rl = await hitRateLimit("booking_create", ip, { limit: 10, windowSec: 3600 });
     if (!rl.ok) return { ok: false as const, reason: "rate_limited" as const };
     const { bookSlot } = await import("./book.server");

@@ -22,3 +22,10 @@
 - [ ] Profiel-deelafbeelding midden-veilig maken voor vierkante uitsnede
 - [ ] Profielhub-pagina's betere ervaring
 - [ ] Nederlands nakijken op alle pagina's, vooral hoofdpagina; ontbrekende info op hoofdpagina aanvullen
+- [ ] Beveiliging nakijken van agenda en andere onderdelen (afspraken, boekingen, gedeelde links)
+- [ ] Koppelingen/live-integraties nakijken: koppelen werkt overal; live-blokken alleen zichtbaar bij actief of zeer recent (muziek, nieuwe post, bewerken, spelen)
+- [ ] Studio diepgaand nakijken: indicatoren (bv. "verborgen") niet buiten kader of afgesneden
+- [ ] Workspace-studio: knop heet "Workspace QR-code" en opent meteen de QR van die workspace
+- [ ] Hoofdstijl = strakke klassieke toets (geen gloed, harde schaduwrand + indruk-effect); glasstijl echt glas; knopvormen veranderen mee
+- [ ] Onthouden welke pagina laatst open was (privé of geverifieerd)
+- [ ] ROUT-badge klopt niet altijd

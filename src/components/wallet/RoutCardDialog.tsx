@@ -758,7 +758,8 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
 
         {card && ownerState.owner && <CardKeysPanel space={space} />}
 
-        {card && (
+        {/* The authenticity check is for someone looking at another member's card, never for the owner. */}
+        {card && (code || !(ownerState.owner || vault === "key")) && (
           <div className="rounded-2xl border border-border p-3">
             {code ? (
               <p className="flex items-center gap-2 text-xs text-muted-foreground">

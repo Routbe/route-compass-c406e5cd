@@ -31,10 +31,10 @@ describe("bookingSummary PII-afscherming (db/0144)", () => {
     expect(s!.guestName).toBeNull();
     expect(s!.guestTimezone).toBeNull();
     expect(s!.locationValue).toBeNull();
-    // Wel publieke statusinfo:
+    // Alleen de status; titel en tijdstip blijven privé zonder token.
     expect(s!.status).toBe("confirmed");
-    expect(s!.startUtc).toBe("2026-11-05T14:00:00.000Z");
-    expect(s!.title).toBe("Kennismaking");
+    expect(s!.startUtc).toBeNull();
+    expect(s!.title).toBeNull();
   });
 
   it("lekt geen gast-PII bij een ongeldige token", async () => {
