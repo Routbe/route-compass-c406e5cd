@@ -57,5 +57,9 @@
   "home.cards.key.f2": "Détails privés après une nouvelle vérification",
   "home.cards.key.f3": "Bloquer, geler ou remplacer à tout moment",
   "home.cards.profileLink": "Voir les profils",
-  "home.cards.private": "Privé"
+  "home.cards.private": "Privé",
+  "home.faq.scan.q": "Que se passe-t-il quand quelqu'un scanne ma carte ROUT ?",
+  "home.faq.scan.a": "Un scan n'affiche jamais de données directement. La personne qui scanne voit d'abord « vérification requise » et doit confirmer avec une passkey, une application d'authentification ou un code SMS. Ce n'est qu'ensuite que le code est vérifié, et chaque code ne fonctionne qu'une seule fois.",
+  "home.faq.security.q": "Comment ma carte ROUT privée est-elle protégée ?",
+  "home.faq.security.a": "Vous ne pouvez la demander qu'avec la double authentification. Chaque fois que vous consultez ses données privées, vous confirmez à nouveau ; après 5 minutes, elles disparaissent d'elles-mêmes. Le gel se fait en un geste, et après un remplacement, l'ancien numéro, l'ancien QR code et l'ancienne clé NFC ne fonctionnent plus nulle part."
 }

@@ -12,7 +12,7 @@ const CARDS = [
   { key: "stealth", Icon: EyeOff },
   { key: "key", Icon: Nfc },
 ] as const;
-const FAQ = ["lost", "compare", "metal", "free"] as const;
+const FAQ = ["scan", "security", "lost", "compare", "metal", "free"] as const;
 
 /** Homepage blocks: three steps, public vs. private, the three cards, pricing and FAQ. */
 export function HomeSections() {
