@@ -36,10 +36,14 @@ export default function BookingDone({ bookingId, paid, token }: { bookingId: str
                 {b.status === "confirmed" ? t("booking.done.confirmed") : b.status === "requested" ? t("booking.done.requested")
                   : b.status === "pending_payment" ? t("booking.done.pending") : t("booking.done.cancelled")}
               </h1>
-              <p className="font-medium">{b.title}</p>
-              <p className="text-sm text-muted-foreground">
-                {new Intl.DateTimeFormat(locale, { dateStyle: "full", timeStyle: "short", timeZone: tz }).format(new Date(b.startUtc))} ({tz})
-              </p>
+              {b.title && <p className="font-medium">{b.title}</p>}
+              {b.startUtc ? (
+                <p className="text-sm text-muted-foreground">
+                  {new Intl.DateTimeFormat(locale, { dateStyle: "full", timeStyle: "short", timeZone: tz }).format(new Date(b.startUtc))} ({tz})
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">{t("booking.done.masked")}</p>
+              )}
               {b.locationValue && <p className="break-all text-sm">{b.locationValue}</p>}
               {b.status === "requested" && <p className="text-sm text-muted-foreground">{t("booking.done.requestedBody")}</p>}
               {b.status === "pending_payment" && paid && <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />}

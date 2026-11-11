@@ -64,9 +64,9 @@ export async function publicSlots(id: string, now = new Date()): Promise<string[
 
 /**
  * Confirmation view. The booking id alone is NOT a capability (db/0144):
- * guest PII is only returned with the high-entropy `booking_token` that the
- * guest receives after booking. Without a valid token the response is masked:
- * status/times/title only, never guest name, timezone or location.
+ * details are only returned with the high-entropy `booking_token` that the
+ * guest receives after booking. Without a valid token the response is masked
+ * to the status only: no title, time, guest name, timezone or location.
  */
 export async function bookingSummary(id: string, token?: string | null) {
   const rows = (await sql`select b.id, b.status, b.start_utc, b.end_utc, b.guest_name, b.guest_timezone,
@@ -75,21 +75,22 @@ export async function bookingSummary(id: string, token?: string | null) {
     from public.bookings b join public.booking_event_types t on t.id = b.event_type_id where b.id = ${id}::uuid`) as Record<string, unknown>[];
   const r = rows[0];
   if (!r) return null;
-  const base = {
-    id: String(r["id"]), status: String(r["status"]), title: String(r["title"]),
-    startUtc: new Date(String(r["start_utc"])).toISOString(),
-    endUtc: new Date(String(r["end_utc"])).toISOString(),
-    locationKind: String(r["location_kind"]),
-  };
   const storedToken = r["booking_token"] ? String(r["booking_token"]) : null;
   // Constant-time vergelijking zonder node:crypto (workerd-compatibel).
   const tokenOk = validBookingToken(token, storedToken);
   if (!tokenOk) {
-    // Gemaskerde publieke status-check: geen gast-PII, geen locatie.
-    return { ...base, guestName: null, guestTimezone: null, locationValue: null, masked: true as const };
+    // Gemaskerd: alleen de status. Titel en tijdstip kunnen zelf al privé zijn.
+    return {
+      id: String(r["id"]), status: String(r["status"]), title: null, startUtc: null, endUtc: null, locationKind: null,
+      guestName: null, guestTimezone: null, locationValue: null, masked: true as const,
+    };
   }
   return {
-    ...base, masked: false as const,
+    id: String(r["id"]), status: String(r["status"]), title: String(r["title"]),
+    startUtc: new Date(String(r["start_utc"])).toISOString(),
+    endUtc: new Date(String(r["end_utc"])).toISOString(),
+    locationKind: String(r["location_kind"]),
+    masked: false as const,
     guestName: String(r["guest_name"]),
     guestTimezone: String(r["guest_timezone"]),
     locationValue: r["location_value"] ? String(r["location_value"]) : null,
