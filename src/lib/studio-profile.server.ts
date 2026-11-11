@@ -211,7 +211,7 @@ export async function writeStudioProfile(userId: string, input: StudioProfileInp
     try {
       const saved = (await sql`
         update public.profiles
-           set display_prefs = (${JSON.stringify(input.displayPrefs)}::jsonb - 'firstUseTours' - 'qrSettings' - 'workspaceUi')
+           set display_prefs = (${JSON.stringify(input.displayPrefs)}::jsonb - 'firstUseTours' - 'qrSettings' - 'workspaceUi' - 'cardSecurity')
              || case when display_prefs ? 'firstUseTours'
                      then jsonb_build_object('firstUseTours', display_prefs->'firstUseTours')
                      else '{}'::jsonb end
@@ -220,6 +220,9 @@ export async function writeStudioProfile(userId: string, input: StudioProfileInp
                      else '{}'::jsonb end
              || case when display_prefs ? 'workspaceUi'
                      then jsonb_build_object('workspaceUi', display_prefs->'workspaceUi')
+                     else '{}'::jsonb end
+             || case when display_prefs ? 'cardSecurity'
+                     then jsonb_build_object('cardSecurity', display_prefs->'cardSecurity')
                      else '{}'::jsonb end
          where id = ${userId}
         returning display_prefs
