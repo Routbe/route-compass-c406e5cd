@@ -78,19 +78,35 @@ export function wrapLines(text: string, maxChars: number, maxLines: number): str
   return lines;
 }
 
+/** One line when it fits, otherwise two lines of near-equal length (no lonely last word). */
+export function balancedTitle(text: string, maxChars: number): string[] {
+  if (text.length <= maxChars) return [text];
+  const words = text.split(/\s+/).filter(Boolean);
+  let best: string[] = wrapLines(text, maxChars, 2);
+  let bestDiff = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const a = words.slice(0, i).join(" "), b = words.slice(i).join(" ");
+    if (a.length > maxChars || b.length > maxChars) continue;
+    const d = Math.abs(a.length - b.length);
+    if (d < bestDiff) { bestDiff = d; best = [a, b]; }
+  }
+  return best;
+}
+
 export function shareCardSvg(input: { kind: ShareCardKind; lang: ShareCardLang; handle: string; name: string; avatarUrl: string | null; urlLabel: string }) {
   const { kind, handle, name, avatarUrl } = input;
   const copy = shareCardCopy(kind, input.lang);
   const [c1, c2] = PALETTE[kind];
   const X = 300, W = 600, Y = 46, HEAD = 250, BODY = 120, R = 40;
   const cx = 600;
+  const ay = Y + 60;
   const avatar = avatarUrl
-    ? `<clipPath id="av"><circle cx="${cx}" cy="${Y + 74}" r="46"/></clipPath><circle cx="${cx}" cy="${Y + 74}" r="50" fill="#ffffff"/><image href="${escapeXml(avatarUrl)}" x="${cx - 46}" y="${Y + 28}" width="92" height="92" clip-path="url(#av)" preserveAspectRatio="xMidYMid slice"/>`
-    : `<circle cx="${cx}" cy="${Y + 74}" r="50" fill="#ffffff"/><circle cx="${cx}" cy="${Y + 74}" r="46" fill="${c1}"/><text x="${cx}" y="${Y + 90}" text-anchor="middle" font-family="Inter" font-weight="700" font-size="42" fill="#ffffff">${escapeXml(initials(name))}</text>`;
-  const title = wrapLines(copy.title, 24, 2);
-  const titleY = Y + 162 - (title.length - 1) * 20;
+    ? `<clipPath id="av"><circle cx="${cx}" cy="${ay}" r="40"/></clipPath><circle cx="${cx}" cy="${ay}" r="44" fill="#ffffff"/><image href="${escapeXml(avatarUrl)}" x="${cx - 40}" y="${ay - 40}" width="80" height="80" clip-path="url(#av)" preserveAspectRatio="xMidYMid slice"/>`
+    : `<circle cx="${cx}" cy="${ay}" r="44" fill="#ffffff"/><circle cx="${cx}" cy="${ay}" r="40" fill="${c1}"/><text x="${cx}" y="${ay + 14}" text-anchor="middle" font-family="Inter" font-weight="700" font-size="38" fill="#ffffff">${escapeXml(initials(name))}</text>`;
+  const title = balancedTitle(copy.title, 25);
+  const titleY = title.length === 1 ? Y + 162 : Y + 150;
   const titleSvg = title.map((l, i) => `<text x="${cx}" y="${titleY + i * 42}" text-anchor="middle" font-family="Inter" font-weight="800" font-size="38" fill="#ffffff">${escapeXml(l)}</text>`).join("");
-  const handleY = titleY + title.length * 42 + 2;
+  const handleY = titleY + (title.length - 1) * 42 + 38;
   const body = wrapLines(copy.body, 34, 2);
   const bodyTop = Y + HEAD + BODY / 2 - (body.length - 1) * 16 + 10;
   const bodySvg = body.map((l, i) => `<text x="${cx}" y="${bodyTop + i * 32}" text-anchor="middle" font-family="Inter" font-weight="500" font-size="28" fill="#7a746e">${escapeXml(l)}</text>`).join("");
