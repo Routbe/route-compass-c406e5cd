@@ -9,7 +9,9 @@
 - [x] Bevriezen (tijdelijk, terug te draaien) naast blokkeren; live status ACTIEF / GEBLOKKEERD / BEVROREN
 - [ ] Beheer-weergave in vlakke obsidian-stijl met 1px raster en "//"-accenten
 - [x] Regeltests: 2FA verplicht, step-up 5 min, oude serial ongeldig na vervangen, juiste wallet-kaart
-- [ ] Ingelogd testen van de kaart-flows (wacht op e-mail/sms-instellingen voor verificatie)
+- [ ] Ingelogd testen van de kaart-flows: testaccount rout-test-kaart2 gemaakt (passkey werkt); wacht op akkoord om het als geverifieerd te markeren
+- [ ] Na testen: beide testaccounts (rout-test-kaart, rout-test-kaart2) verwijderen na akkoord
+- [ ] Command Center-kaartwidget: Nederlandse tekst verschijnt ook als de site in het Engels staat
 - [ ] Google Wallet echt testen (wacht op Google Wallet- en WALLET_ID_SECRET-sleutels)
 - [x] Eigen code-doorlichting beveiliging (wallet, kaart, auth, API) naast de scan — kaartcodes gebonden aan kaart, bevestigingen eenmalig, vervangen atomisch
 - [ ] Restpunten beveiliging: 4-cijfer voorkant-code, bevestiging aan sessie binden
