@@ -73,7 +73,7 @@ export function googleKeyClass(issuerId: string, smartTap: { redemptionIssuerId:
   return {
     id: `${issuerId}.rout_sovereign_key`,
     issuerName: "ROUT",
-    programName: "ROUT Sovereign Key",
+    programName: "ROUT-kaart",
     programLogo: { sourceUri: { uri: logoUrl }, contentDescription: same("ROUT") },
     hexBackgroundColor: KEY_TILE,
     reviewStatus: "UNDER_REVIEW",
@@ -94,7 +94,7 @@ export function googleKeyObject(key: WalletKeyPayload, issuerId: string, opts: {
     id: `${issuerId}.${key.serial}`,
     classId: `${issuerId}.rout_sovereign_key`,
     state: "ACTIVE",
-    accountName: "NFC · Hardware key",
+    accountName: opts.nfc !== false ? "Privé · NFC + QR" : "Privé · roterende QR",
     accountId: `•••• ${key.label}`,
     ...(opts.nfc !== false ? { smartTapRedemptionValue: key.token } : {}),
     ...(opts.manageUrl ? { linksModuleData: { uris: [{ id: "manage", uri: opts.manageUrl, localizedDescription: text("Kaart beheren, bevriezen of vervangen", "Manage, freeze or replace card", "Gérer, geler ou remplacer la carte", "Karte verwalten, sperren oder ersetzen") }] } } : {}),
