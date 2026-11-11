@@ -9,8 +9,8 @@ import { isStepUpRequiredError, type StepUpMethod } from "@/lib/auth/step-up-rul
 import { authClient } from "@/lib/auth-client";
 import { i18n, useTranslation } from "@/lib/i18n";
 
-/** ROUT card actions accept every active factor (SMS, recovery code, password too). */
-export type StepUpScope = "card_reveal" | "card_lifecycle";
+/** ROUT card actions accept every active factor (SMS, recovery code, password too); a scan only a real second factor. */
+export type StepUpScope = "card_reveal" | "card_lifecycle" | "card_scan";
 type Waiter = { resolve: (ok: boolean) => void; action?: StepUpScope };
 let opener: ((w: Waiter) => void) | null = null;
 
