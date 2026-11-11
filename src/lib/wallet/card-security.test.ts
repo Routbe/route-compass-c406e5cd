@@ -5,14 +5,20 @@ vi.mock("./card-liveness.server", () => ({ livenessKey: async () => new Uint8Arr
 vi.mock("./card-token", () => ({ verifySecureToken: mocks.token }));
 vi.mock("./wallet-payload.server", () => ({ generateWalletPayload: mocks.card }));
 import { cardStatus, validateCardActive, issueChallenge } from "./card-freeze.server";
-import { verifySecureCardTokenCore, verdictHttpStatus } from "./card-verify.server";
+import { cardTokenTag, verifySecureCardTokenCore, verdictHttpStatus } from "./card-verify.server";
 
-beforeEach(() => {
+beforeEach(async () => {
   mocks.query.mockReset();
-  mocks.token.mockReset().mockResolvedValue({ ok: true, payload: { h: "owner", s: "r", n: "nonce", exp: Date.now() + 60000 } });
+  mocks.token.mockReset().mockResolvedValue({ ok: true, payload: { h: "owner", s: "r", c: await cardTokenTag("serial"), n: "nonce", exp: Date.now() + 60000 } });
   mocks.card.mockReset().mockResolvedValue({ serial: "serial", displayName: "Owner", heroImageUrl: null });
 });
 describe("fail-closed card authorization", () => {
+  it("rejects a token of a replaced card (other card number) before any lookup", async () => {
+    mocks.token.mockResolvedValue({ ok: true, payload: { h: "owner", s: "r", c: await cardTokenTag("old-serial"), n: "nonce", exp: Date.now() + 60000 } });
+    mocks.query.mockResolvedValue([{ s: "active" }]);
+    expect(await verifySecureCardTokenCore("signed-token")).toEqual({ status: "invalid" });
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
   it.each([undefined, null, "pending", "revoked", "unexpected"])("does not authorize status %s", async (s) => {
     mocks.query.mockResolvedValue([{ s }]);
     expect(await validateCardActive("serial")).toBe(false);
