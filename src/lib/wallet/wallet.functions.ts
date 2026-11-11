@@ -418,13 +418,14 @@ export const replaceMyCard = createServerFn({ method: "POST" })
     const { ensureStepUpSession, consumeStepUp } = await import("@/lib/auth/step-up.server");
     await ensureStepUpSession(context.userId, "card_lifecycle");
     await consumeStepUp();
-    const { blockCard, nextCardGeneration } = await import("./card-freeze.server");
+    const { replaceCardAtomically } = await import("./card-freeze.server");
     const { hitRateLimit } = await import("@/lib/rate-limit-db.server");
     const limit = await hitRateLimit("card-replace", context.userId, { limit: 3, windowSec: 24 * 3600 }, { failClosed: true });
     if (!limit.ok) return { ok: false as const, error: "rate_limited" as const };
     try {
-      await blockCard(mine.card.serial, context.userId, "replaced", mine.keySerial ? [mine.keySerial] : []);
-      await nextCardGeneration(context.userId);
+      // Block old card + key, revoke physical keys and issue the next number in one transaction.
+      const next = await replaceCardAtomically(mine.card.serial, context.userId, mine.generation, mine.keySerial ? [mine.keySerial] : []);
+      if (next === null) return { ok: false as const, error: "busy" as const };
     } catch (err) {
       if ((err as { statusCode?: number }).statusCode === 503) return { ok: false as const, error: "unavailable" as const };
       throw err;

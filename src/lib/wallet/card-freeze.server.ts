@@ -90,6 +90,33 @@ export async function blockCard(serial: string, userId: string, reason: "lost" |
   }
 }
 
+/**
+ * Replacement in one database transaction: block the old card and its wallet key,
+ * revoke its physical keys and move to the next generation, all or nothing.
+ * The generation only moves from the one the caller saw, so two concurrent
+ * replacements can never skip a number. Returns the new generation, or null when
+ * another replacement won the race.
+ */
+export async function replaceCardAtomically(serial: string, userId: string, fromGeneration: number, extra: string[] = []): Promise<number | null> {
+  const serials = [serial, ...extra];
+  try {
+    const results = await sql.transaction([
+      sql`insert into public.card_freezes (serial, user_id, blocked, reason) select s, ${userId}::uuid, true, 'replaced' from unnest(${serials}::text[]) as s
+          on conflict (serial) do update set blocked = true, reason = excluded.reason where card_freezes.user_id = excluded.user_id`,
+      sql`update public.physical_keys set status = 'revoked' where card_serial = ${serial} and user_id = ${userId}::uuid and status <> 'revoked'`,
+      sql`insert into public.rout_card_generations (user_id, generation) values (${userId}::uuid, 1)
+          on conflict (user_id) do update set generation = rout_card_generations.generation + 1, replaced_at = now()
+          where rout_card_generations.generation = ${fromGeneration}
+          returning generation`,
+    ]);
+    const g = Number((results[2] as { generation?: unknown }[] | undefined)?.[0]?.generation);
+    return Number.isInteger(g) && g > fromGeneration ? g : null;
+  } catch (err) {
+    if (missingSchema(err) || /rout_card_generations/.test(String((err as Error)?.message))) throw notReady();
+    throw err;
+  }
+}
+
 /** Current card generation (0 = original numbers); only a missing table counts as 0, other errors fail closed. */
 export async function cardGeneration(userId: string): Promise<number> {
   try {
