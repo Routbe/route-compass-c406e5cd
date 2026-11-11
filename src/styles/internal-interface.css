@@ -328,3 +328,39 @@
 .dark .wallet-vault-card:not([data-kind="key"]) {
   box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 0.06), 0 2px 0 0 oklch(0 0 0 / 0.6), 0 14px 26px -16px oklch(0 0 0 / 0.8) !important;
 }
+
+/* Zero-trust scan terminal (ROUT card checks): flat obsidian, 1px grid, no gradients
+   or shadows; "//" prompts in mint, warnings in terracotta. Same in every material. */
+:root {
+  --zt-obsidian: oklch(0.165 0.008 290);
+  --zt-ink: oklch(0.96 0.005 290);
+  --zt-muted: oklch(0.96 0.005 290 / 0.62);
+  --zt-line: oklch(1 0 0 / 0.1);
+  --zt-mint: oklch(0.86 0.13 165);
+  --zt-terracotta: oklch(0.7 0.13 40);
+}
+.zt-surface {
+  min-height: 100svh;
+  background-color: var(--zt-obsidian);
+  background-image: linear-gradient(var(--zt-line) 1px, transparent 1px), linear-gradient(90deg, var(--zt-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  color: var(--zt-ink);
+}
+.zt-panel { border: 1px solid var(--zt-line); border-radius: 12px; background: var(--zt-obsidian); box-shadow: none !important; }
+.zt-rule { border-top: 1px solid var(--zt-line); }
+.zt-prompt { font-family: var(--font-mono, ui-monospace, monospace); letter-spacing: 0.06em; text-transform: uppercase; color: var(--zt-mint); }
+.zt-prompt[data-tone="alert"] { color: var(--zt-terracotta); }
+.zt-muted { color: var(--zt-muted); }
+.zt-mono { font-family: var(--font-mono, ui-monospace, monospace); }
+.zt-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 2.75rem; padding: 0 1.25rem; border-radius: 999px;
+  border: 1px solid var(--zt-mint); background: transparent !important; background-image: none !important;
+  color: var(--zt-mint) !important; font-weight: 600; box-shadow: none !important; backdrop-filter: none !important;
+  transition: background-color 120ms linear;
+}
+.zt-button:hover:not(:disabled) { background: color-mix(in oklab, var(--zt-mint) 12%, transparent) !important; }
+.zt-button:disabled { opacity: 0.45; cursor: not-allowed; }
+.zt-button:focus-visible { outline: 2px solid var(--zt-mint); outline-offset: 2px; }
+.zt-link { color: var(--zt-muted); text-decoration: underline; text-underline-offset: 3px; }
+.zt-link:hover { color: var(--zt-ink); }
