@@ -4,11 +4,11 @@
 - [x] Startpagina: 2 profielkaarten + 1 privé ROUT-kaart
 - [x] Command Center-widget met status en snelle acties
 - [ ] Volledige beveiligingsdoorlichting van het portaal (diepe scan loopt; daarna bevindingen oplossen op risico)
-- [ ] Zero-trust scan: rout.be/c/[SERIAL] toont alleen "// VERIFICATIE VEREIST" en vraagt passkey/2FA vóór data
-- [ ] Kaart-API: 401 "Step-Up Required" (max 5 min) voor geheimen, bevriezen, blokkeren, vervangen; oude serial meteen bevroren
+- [ ] Zero-trust scan (beveiligde kaartcode /kaart/… klaar; adres /c/[SERIAL] nog toevoegen): toont alleen "// VERIFICATIE VEREIST" en vraagt passkey/2FA vóór data
+- [x] Kaart-API: 401 "Step-Up Required" (max 5 min) voor geheimen, bevriezen, blokkeren, vervangen; oude serial meteen bevroren
 - [ ] Bevriezen (tijdelijk, terug te draaien) naast blokkeren; live status ACTIEF / GEBLOKKEERD / BEVROREN
 - [ ] Beheer-weergave in vlakke obsidian-stijl met 1px raster en "//"-accenten
-- [ ] Regeltests: 2FA verplicht, step-up 5 min, oude serial ongeldig na vervangen, juiste wallet-kaart
+- [x] Regeltests: 2FA verplicht, step-up 5 min, oude serial ongeldig na vervangen, juiste wallet-kaart
 - [ ] Ingelogd testen van de kaart-flows (wacht op e-mail/sms-instellingen voor verificatie)
 - [ ] Google Wallet echt testen (wacht op Google Wallet- en WALLET_ID_SECRET-sleutels)
 - [x] Eigen code-doorlichting beveiliging (wallet, kaart, auth, API) naast de scan — kaartcodes gebonden aan kaart, bevestigingen eenmalig, vervangen atomisch
