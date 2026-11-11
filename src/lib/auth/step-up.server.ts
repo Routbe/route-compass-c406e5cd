@@ -1,16 +1,19 @@
 /**
  * ensureStepUpSession: sensitive actions need a passkey/TOTP (or, without those,
  * e-mail code) verification of at most 120 s old, proven by an HMAC-signed HttpOnly cookie.
+ * Proofs carry the action they were given for and a random id; card actions spend that id once.
  */
 import {
   STEP_UP_COOKIE,
   STEP_UP_MAX_AGE_SEC,
   STEP_UP_REQUIRED,
   allowedStepUpMethods,
-  checkStepUpPayload,
-  methodAcceptedFor,
+  isSingleUseStepUpAction,
+  parseStepUpPayload,
+  proofCoversAction,
   stepUpPayload,
   type EnrolledFactors,
+  type StepUpProof,
   type StepUpAction,
   type StepUpMethod,
 } from "@/lib/auth/step-up-rules";
@@ -41,14 +44,19 @@ function safeEqual(a: string, b: string) {
   return d === 0;
 }
 
-/** Checks a raw cookie value; exported for tests. */
-export async function verifyStepUpCookie(raw: string | null | undefined, userId: string, nowSec = Math.floor(Date.now() / 1000)) {
-  if (!raw) return null;
+/** Checks a raw cookie value and returns the full proof; exported for tests. */
+export async function verifyStepUpProof(raw: string | null | undefined, userId: string, nowSec = Math.floor(Date.now() / 1000)): Promise<StepUpProof | null> {
+  if (!raw || raw.length > 400) return null;
   const i = raw.lastIndexOf(".");
   if (i < 0) return null;
   const payload = raw.slice(0, i);
   if (!safeEqual(raw.slice(i + 1), await hmacSha256Hex(await secret(), payload))) return null;
-  return checkStepUpPayload(payload, userId, nowSec);
+  return parseStepUpPayload(payload, userId, nowSec);
+}
+
+/** Checks a raw cookie value; returns the method of a valid proof. */
+export async function verifyStepUpCookie(raw: string | null | undefined, userId: string, nowSec = Math.floor(Date.now() / 1000)) {
+  return (await verifyStepUpProof(raw, userId, nowSec))?.method ?? null;
 }
 
 /** Sign-in factors of a member (public user id). Unknown facts count as absent. */
@@ -78,18 +86,29 @@ export async function enrolledFactors(userId: string): Promise<EnrolledFactors &
   return { authUserId: r?.auth_id ?? null, totp, passkey: Boolean(r?.passkey), sms, backup: totp && Boolean(r?.backup), password: Boolean(r?.password) };
 }
 
-/** Throws StepUpRequiredError (401) unless a fresh step-up proof exists. */
-export async function ensureStepUpSession(userId: string, action: StepUpAction, readCookie?: () => string | undefined) {
+/**
+ * Throws StepUpRequiredError (401) unless a fresh step-up proof covers this action.
+ * Card actions spend the proof atomically in the database, so a copied or
+ * concurrent proof works at most once; storage errors fail closed.
+ */
+export async function ensureStepUpProof(userId: string, action: StepUpAction, readCookie?: () => string | undefined): Promise<StepUpProof> {
   let raw: string | undefined;
   if (readCookie) raw = readCookie();
   else {
     const { readRequestCookie } = await import("@/lib/request-context");
     raw = readRequestCookie(STEP_UP_COOKIE);
   }
-  const proof = await verifyStepUpCookie(raw, userId);
-  // A proof from a card-only factor (SMS, recovery code, password) never unlocks other actions.
-  const method = proof && methodAcceptedFor(action, proof) ? proof : null;
-  if (!method) {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const parsed = await verifyStepUpProof(raw, userId, nowSec);
+  let proof = parsed && proofCoversAction(parsed, action) ? parsed : null;
+  if (proof && isSingleUseStepUpAction(action)) {
+    const { useTokenNonce } = await import("@/lib/wallet/card-freeze.server");
+    // Kept at least until the proof itself expires (rows stay 5 min past this).
+    const exp = Math.min((nowSec + 60) * 1000, (proof.verifiedAtSec + STEP_UP_MAX_AGE_SEC) * 1000);
+    const first = exp > Date.now() ? await useTokenNonce(proof.jti, exp).catch(() => null) : null;
+    if (first !== true) proof = null;
+  }
+  if (!proof) {
     if (!readCookie) {
       try {
         const { setCurrentResponseStatus } = await import("@/lib/request-context");
@@ -101,14 +120,20 @@ export async function ensureStepUpSession(userId: string, action: StepUpAction, 
     throw new StepUpRequiredError();
   }
   const { recordSecurityEvent } = await import("@/lib/audit-log.server");
-  void recordSecurityEvent({ eventType: `step_up.used.${action}`, userId, payload: { method } });
-  return method;
+  void recordSecurityEvent({ eventType: `step_up.used.${action}`, userId, payload: { method: proof.method } });
+  return proof;
+}
+
+/** Same check, returning only the method used. */
+export async function ensureStepUpSession(userId: string, action: StepUpAction, readCookie?: () => string | undefined) {
+  return (await ensureStepUpProof(userId, action, readCookie)).method;
 }
 
 export async function grantStepUp(userId: string, method: StepUpMethod, emitCookie?: (name: string, value: string) => void, action?: StepUpAction) {
   const allowed = allowedStepUpMethods(await enrolledFactors(userId), action);
   if (!allowed.includes(method)) throw new Error("Deze verificatiemethode is niet toegestaan voor je account.");
-  const value = await sign(stepUpPayload(userId, method, Math.floor(Date.now() / 1000)));
+  // Every proof except a passkey is bound to the action it was confirmed for.
+  const value = await sign(stepUpPayload(userId, method, Math.floor(Date.now() / 1000), action ?? "*"));
   if (emitCookie) emitCookie(STEP_UP_COOKIE, value);
   else {
     const { writeResponseCookie: setCookie } = await import("@/lib/request-context");

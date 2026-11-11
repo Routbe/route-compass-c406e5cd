@@ -64,7 +64,7 @@ export function CardSecurityPanel({ onChange }: { onChange?: () => void }) {
   });
   const doReplace = () => run("replace", async () => {
     const r = await withStepUp(() => replace(), "card_lifecycle");
-    if (!r.ok) throw new Error(r.error === "rate_limited" ? "Je kunt maximaal 3 keer per dag vervangen." : "Vervangen lukte niet.");
+    if (!r.ok) throw new Error(r.error === "rate_limited" ? "Je kunt maximaal 3 keer per dag vervangen." : r.error === "busy" ? "Je kaart werd net al vervangen. Vernieuw de pagina en kijk je nieuwe kaart na." : "Vervangen lukte niet.");
     toast.success("Nieuwe kaart uitgegeven. De oude kaart werkt nergens meer.");
     await refresh(); onChange?.();
   });

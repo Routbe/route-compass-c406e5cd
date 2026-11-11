@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CARD_UNLOCK_TTL_S, cardActionAllowed, cardUnlockPayload, checkCardUnlockPayload, generationLabel, needsStepUp } from "./card-lifecycle";
+import { CARD_UNLOCK_TTL_S, cardActionAllowed, cardUnlockExpiry, cardUnlockPayload, checkCardUnlockPayload, generationLabel, needsStepUp } from "./card-lifecycle";
 import { allowedStepUpMethods, hasSecondFactor, methodAcceptedFor } from "@/lib/auth/step-up-rules";
 
 describe("ROUT card lifecycle", () => {
@@ -28,13 +28,20 @@ describe("ROUT card lifecycle", () => {
     expect(generationLabel(3)).toBe(":g3");
     expect(() => generationLabel(-1)).toThrow();
   });
-  it("the unlock window lasts 5 minutes and belongs to one member", () => {
+  it("the unlock window lasts 5 minutes and belongs to one member and one card", () => {
     expect(CARD_UNLOCK_TTL_S).toBe(300);
-    const p = cardUnlockPayload("u1", 1300);
-    expect(checkCardUnlockPayload(p, "u1", 1000)).toBe(1300);
+    const p = cardUnlockPayload("u1", 1000, 1300, "0123456789abcdef");
+    expect(checkCardUnlockPayload(p, "u1", 1000)).toEqual({ issuedAtSec: 1000, expiresAtSec: 1300, cardTag: "0123456789abcdef" });
     expect(checkCardUnlockPayload(p, "u2", 1000)).toBeNull();
     expect(checkCardUnlockPayload(p, "u1", 1300)).toBeNull();
-    expect(checkCardUnlockPayload(cardUnlockPayload("u1", 5000), "u1", 1000)).toBeNull();
+    // Longer than 5 minutes is never accepted, even when signed.
+    expect(checkCardUnlockPayload(cardUnlockPayload("u1", 1000, 1301, "0123456789abcdef"), "u1", 1000)).toBeNull();
+    expect(checkCardUnlockPayload(cardUnlockPayload("u1", 1000, 1200, "not-a-tag"), "u1", 1000)).toBeNull();
+  });
+  it("the window ends 5 minutes after the verification itself, not after the click", () => {
+    expect(cardUnlockExpiry(1000, 1000)).toBe(1300);
+    expect(cardUnlockExpiry(1000, 1100)).toBe(1300);
+    expect(cardUnlockExpiry(1000, 1300)).toBeNull();
   });
 });
 

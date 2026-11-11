@@ -1,9 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth/middleware";
-import { allowedStepUpMethods, isCardStepUpAction, type StepUpAction } from "@/lib/auth/step-up-rules";
+import { CARD_SCAN_ACTION, allowedStepUpMethods, isCardStepUpAction, type StepUpAction } from "@/lib/auth/step-up-rules";
 
-const actionInput = z.enum(["card_reveal", "card_lifecycle"]).optional();
+const actionInput = z.enum(["card_reveal", "card_lifecycle", "card_scan"]).optional();
 
 /** Which methods this account may use for step-up (card actions accept every active factor). */
 export const getStepUpOptions = createServerFn({ method: "GET" })
@@ -61,7 +61,8 @@ export const completeStepUp = createServerFn({ method: "POST" })
     const request = getRequest();
     const action = data.action as StepUpAction | undefined;
     // Card-only factors: SMS, recovery code and password never unlock other actions.
-    if ((data.method === "sms" || data.method === "backup" || data.method === "password") && !isCardStepUpAction(action)) {
+    if ((data.method === "sms" || data.method === "backup" || data.method === "password") && !isCardStepUpAction(action)
+      && !(data.method === "sms" && action === CARD_SCAN_ACTION)) {
       throw new Error("Deze verificatiemethode is hier niet toegestaan.");
     }
     if (data.method === "backup" || data.method === "password") {

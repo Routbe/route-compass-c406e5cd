@@ -57,5 +57,9 @@
   "home.cards.key.f2": "Private details only after a fresh check",
   "home.cards.key.f3": "Block, freeze or replace instantly",
   "home.cards.profileLink": "See profile hubs",
-  "home.cards.private": "Private"
+  "home.cards.private": "Private",
+  "home.faq.scan.q": "What happens when someone scans my ROUT card?",
+  "home.faq.scan.a": "A scan never shows data straight away. The scanner first sees \"verification required\" and must confirm with a passkey, authenticator app or SMS code. Only then is the code checked, and every code works only once.",
+  "home.faq.security.q": "How is my private ROUT card protected?",
+  "home.faq.security.a": "You can only request it with two-factor authentication. Every time you view its private details you confirm again; after 5 minutes they disappear by themselves. Freezing takes one tap, and after a replacement the old number, QR code and NFC key stop working everywhere."
 }

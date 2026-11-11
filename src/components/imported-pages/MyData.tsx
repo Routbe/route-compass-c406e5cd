@@ -161,7 +161,8 @@ export default function MyData() {
         <Button
           onClick={deleteEverything}
           disabled={confirmText !== t("mydata.delete.confirmWord") || deleting}
-          className="h-11 w-full gap-1.5 bg-red-600 text-white hover:bg-red-700 sm:w-auto"
+          variant="destructive"
+          className="h-11 w-full gap-1.5 sm:w-auto"
         >
           {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           {t("mydata.delete.cta")}

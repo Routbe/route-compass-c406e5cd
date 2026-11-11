@@ -14,7 +14,7 @@ describe("dual-layer scan routing", () => {
   });
 
   it("digital /s/ token is classified ephemeral; a card id on /s/ is not", async () => {
-    const { token } = await signSecureToken(key, { handle: "anna", space: "root", now: Date.now() });
+    const { token } = await signSecureToken(key, { handle: "anna", space: "root", card: "0123456789abcdef", now: Date.now() });
     expect(classifyScan(`/s/${token}`)).toBe("digital-ephemeral");
     expect(classifyScan(`/v/${token}`)).toBeNull();
     expect(classifyScan(`/s/${await sealPublicCardId(key, uid, "root")}`)).toBeNull();

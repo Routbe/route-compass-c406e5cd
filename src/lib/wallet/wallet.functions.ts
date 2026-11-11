@@ -242,18 +242,38 @@ export const getSecureCardToken = createServerFn({ method: "POST" })
     const { livenessKey } = await import("./card-liveness.server");
     const { signSecureToken, accessPayload } = await import("./card-token");
     const now = Date.now();
-    const { token, payload } = await signSecureToken(await livenessKey(), { handle: own.handle, space: own.space, now });
+    const { cardTokenTag } = await import("./card-verify.server");
+    const { token, payload } = await signSecureToken(await livenessKey(), { handle: own.handle, space: own.space, now, card: await cardTokenTag(own.serial) });
     return { frozen: false as const, locked: false as const, url: accessPayload(token), iat: payload.iat, exp: payload.exp, serverNow: now };
   });
 
-/** Public: check a secure QR from the back of a card. Rate limited. */
+/**
+ * Check a secure QR from the back of a card. Zero trust: a scan is only a pointer.
+ * The scanner must be signed in and confirm with a real second factor right now
+ * (passkey, authenticator app or SMS) before anything is checked or shown.
+ */
 export const verifySecureCardToken = createServerFn({ method: "POST" })
+  .middleware([optionalAuth])
   .inputValidator((d: unknown) => z.object({ token: z.string().trim().min(20).max(600) }).parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    if (!context.userId) return { status: "sign_in_required" as const };
     const { getRequest } = await import("@tanstack/react-start/server");
     const { hitRateLimit, clientIp } = await import("@/lib/rate-limit-db.server");
-    const limit = await hitRateLimit("card-secure-verify", clientIp(getRequest()), { limit: 20, windowSec: 300 }, { failClosed: true });
-    if (!limit.ok) return { status: "limited" as const };
+    const [ipLimit, userLimit] = await Promise.all([
+      hitRateLimit("card-secure-verify", clientIp(getRequest()), { limit: 20, windowSec: 300 }, { failClosed: true }),
+      hitRateLimit("card-secure-verify-user", context.userId, { limit: 20, windowSec: 300 }, { failClosed: true }),
+    ]);
+    if (!ipLimit.ok || !userLimit.ok) return { status: "limited" as const };
+    const { memberHasTwoFactor } = await import("./card-owner.server");
+    if (!(await memberHasTwoFactor(context.userId))) return { status: "two_factor_required" as const };
+    const { ensureStepUpProof, consumeStepUp, StepUpRequiredError } = await import("@/lib/auth/step-up.server");
+    try {
+      await ensureStepUpProof(context.userId, "card_scan");
+    } catch (err) {
+      if (err instanceof StepUpRequiredError) return { status: "step_up_required" as const };
+      throw err;
+    }
+    await consumeStepUp();
     const { verifySecureCardTokenCore } = await import("./card-verify.server");
     return verifySecureCardTokenCore(data.token);
   });
@@ -300,7 +320,7 @@ export const setMyCardFrozen = createServerFn({ method: "POST" })
     await setCardFrozen(own.serial, context.userId, data.frozen, mine?.keySerial ? [mine.keySerial] : []);
     if (data.frozen) {
       const { closeCardUnlock } = await import("./card-unlock.server");
-      await closeCardUnlock();
+      await closeCardUnlock(context.userId);
     }
     const { recordSecurityEvent } = await import("@/lib/audit-log.server");
     void recordSecurityEvent({ eventType: data.frozen ? "card.frozen" : "card.unfrozen", userId: context.userId, payload: { space: own.space } });
@@ -339,20 +359,21 @@ export const unlockMyCard = createServerFn({ method: "POST" })
     const mine = await myRootCard(context.userId);
     if (!mine) return { ok: false as const, error: "no_card" as const };
     if (mine.state !== "active") return { ok: false as const, error: "card_inactive" as const };
-    const { ensureStepUpSession, consumeStepUp } = await import("@/lib/auth/step-up.server");
-    await ensureStepUpSession(context.userId, "card_reveal");
-    // One verification, one viewing: the proof is spent so the next viewing asks again.
+    const { ensureStepUpProof, consumeStepUp } = await import("@/lib/auth/step-up.server");
+    // One verification, one viewing: the proof is spent atomically, so the next viewing asks again.
+    const proof = await ensureStepUpProof(context.userId, "card_reveal");
     await consumeStepUp();
     const { openCardUnlock } = await import("./card-unlock.server");
-    return { ok: true as const, unlockedUntil: await openCardUnlock(context.userId), serverNow: Date.now() };
+    // The window is tied to this card number and ends 5 minutes after the verification itself.
+    return { ok: true as const, unlockedUntil: await openCardUnlock(context.userId, mine.card.serial, proof.verifiedAtSec), serverNow: Date.now() };
   });
 
 /** Owner only: hides the private side again (on leave, tab switch or button). */
 export const lockMyCard = createServerFn({ method: "POST" })
   .middleware([requireAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
     const { closeCardUnlock } = await import("./card-unlock.server");
-    await closeCardUnlock();
+    await closeCardUnlock(context.userId);
     return { ok: true as const };
   });
 
@@ -377,7 +398,7 @@ export const blockMyCard = createServerFn({ method: "POST" })
       throw err;
     }
     const { closeCardUnlock } = await import("./card-unlock.server");
-    await closeCardUnlock();
+    await closeCardUnlock(context.userId);
     const { recordSecurityEvent } = await import("@/lib/audit-log.server");
     void recordSecurityEvent({ eventType: "card.blocked", userId: context.userId, payload: { reason: data.reason } });
     return { ok: true as const };
@@ -397,19 +418,20 @@ export const replaceMyCard = createServerFn({ method: "POST" })
     const { ensureStepUpSession, consumeStepUp } = await import("@/lib/auth/step-up.server");
     await ensureStepUpSession(context.userId, "card_lifecycle");
     await consumeStepUp();
-    const { blockCard, nextCardGeneration } = await import("./card-freeze.server");
+    const { replaceCardAtomically } = await import("./card-freeze.server");
     const { hitRateLimit } = await import("@/lib/rate-limit-db.server");
     const limit = await hitRateLimit("card-replace", context.userId, { limit: 3, windowSec: 24 * 3600 }, { failClosed: true });
     if (!limit.ok) return { ok: false as const, error: "rate_limited" as const };
     try {
-      await blockCard(mine.card.serial, context.userId, "replaced", mine.keySerial ? [mine.keySerial] : []);
-      await nextCardGeneration(context.userId);
+      // Block old card + key, revoke physical keys and issue the next number in one transaction.
+      const next = await replaceCardAtomically(mine.card.serial, context.userId, mine.generation, mine.keySerial ? [mine.keySerial] : []);
+      if (next === null) return { ok: false as const, error: "busy" as const };
     } catch (err) {
       if ((err as { statusCode?: number }).statusCode === 503) return { ok: false as const, error: "unavailable" as const };
       throw err;
     }
     const { closeCardUnlock } = await import("./card-unlock.server");
-    await closeCardUnlock();
+    await closeCardUnlock(context.userId);
     const fresh = await myRootCard(context.userId);
     const { recordSecurityEvent } = await import("@/lib/audit-log.server");
     void recordSecurityEvent({ eventType: "card.replaced", userId: context.userId, payload: {} });

@@ -57,5 +57,9 @@
   "home.cards.key.f2": "Private Daten erst nach erneuter Prüfung",
   "home.cards.key.f3": "Sofort sperren, einfrieren oder ersetzen",
   "home.cards.profileLink": "Profile ansehen",
-  "home.cards.private": "Privat"
+  "home.cards.private": "Privat",
+  "home.faq.scan.q": "Was passiert, wenn jemand meine ROUT-Karte scannt?",
+  "home.faq.scan.a": "Ein Scan zeigt nie sofort Daten. Wer scannt, sieht zuerst „Verifizierung erforderlich“ und muss sich mit Passkey, Authenticator-App oder SMS-Code bestätigen. Erst dann wird der Code geprüft, und jeder Code funktioniert nur einmal.",
+  "home.faq.security.q": "Wie ist meine private ROUT-Karte geschützt?",
+  "home.faq.security.a": "Du kannst sie nur mit Zwei-Faktor-Authentifizierung beantragen. Jedes Mal, wenn du ihre privaten Daten ansiehst, bestätigst du erneut; nach 5 Minuten verschwinden sie von selbst. Einfrieren geht mit einem Tipp, und nach einem Ersatz funktionieren alte Nummer, alter QR-Code und alter NFC-Schlüssel nirgends mehr."
 }

@@ -25,7 +25,9 @@ export const Route = createFileRoute("/api_/access/verify")({
           const now = Date.now();
           const k = await verifyWalletKeyQr(parsed.data.payload, process.env["WALLET_ID_SECRET"], now);
           if (!k.ok) return json({ valid: false, error: "invalid" }, 403);
-          const { useTokenNonce } = await import("@/lib/wallet/card-freeze.server");
+          // A frozen, blocked or replaced key never verifies, even with a correct code.
+          const { useTokenNonce, validateCardActive } = await import("@/lib/wallet/card-freeze.server");
+          if (!(await validateCardActive(`key_${k.keyId}`))) return json({ valid: false, error: "frozen" }, 403);
           // A code stays acceptable until the end of the next step; keep its marker that long (max 60 s ahead).
           const exp = Math.min(now + 60_000, (k.step + 2) * KEY_TOTP_PERIOD_MS);
           const first = await useTokenNonce(await walletKeyQrNonce(k.keyId, k.step), exp).catch(() => null);

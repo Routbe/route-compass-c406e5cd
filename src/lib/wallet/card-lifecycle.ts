@@ -48,16 +48,32 @@ export function generationLabel(generation: number): string {
   return generation === 0 ? "" : `:g${generation}`;
 }
 
-/** Signed-cookie payload of an unlock window: `cu1.<user>.<expires unix s>`. */
-export function cardUnlockPayload(userId: string, expiresAtSec: number): string {
-  return `cu1.${userId}.${expiresAtSec}`;
+/**
+ * Signed-cookie payload of an unlock window: `cu2.<user>.<issued s>.<expires s>.<card tag>`.
+ * The card tag ties the window to one card number, so a replaced card never inherits it;
+ * the issue time lets a later lock revoke every window opened before it.
+ */
+export function cardUnlockPayload(userId: string, issuedAtSec: number, expiresAtSec: number, cardTag: string): string {
+  return `cu2.${userId}.${issuedAtSec}.${expiresAtSec}.${cardTag}`;
 }
 
-/** Expiry (unix s) when the payload belongs to this user and is still open, else null. */
-export function checkCardUnlockPayload(payload: string, userId: string, nowSec: number): number | null {
+export type CardUnlockClaims = { issuedAtSec: number; expiresAtSec: number; cardTag: string };
+
+/** Claims when the payload belongs to this user and is still open, else null. */
+export function checkCardUnlockPayload(payload: string, userId: string, nowSec: number): CardUnlockClaims | null {
   const parts = payload.split(".");
-  if (parts.length !== 3 || parts[0] !== "cu1" || parts[1] !== userId) return null;
-  const exp = Number(parts[2]);
-  if (!Number.isInteger(exp) || exp <= nowSec || exp > nowSec + CARD_UNLOCK_TTL_S + 5) return null;
-  return exp;
+  if (parts.length !== 5 || parts[0] !== "cu2" || parts[1] !== userId) return null;
+  const iat = Number(parts[2]);
+  const exp = Number(parts[3]);
+  const tag = parts[4]!;
+  if (!/^[0-9a-f]{16}$/.test(tag)) return null;
+  if (!Number.isSafeInteger(iat) || !Number.isSafeInteger(exp)) return null;
+  if (iat > nowSec + 5 || exp <= nowSec || exp > iat + CARD_UNLOCK_TTL_S || exp > nowSec + CARD_UNLOCK_TTL_S + 5) return null;
+  return { issuedAtSec: iat, expiresAtSec: exp, cardTag: tag };
+}
+
+/** The window closes 5 minutes after the verification itself, not after the click that used it. */
+export function cardUnlockExpiry(verifiedAtSec: number, nowSec: number): number | null {
+  const exp = verifiedAtSec + CARD_UNLOCK_TTL_S;
+  return exp > nowSec ? Math.min(exp, nowSec + CARD_UNLOCK_TTL_S) : null;
 }
