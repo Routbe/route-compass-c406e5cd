@@ -1765,7 +1765,7 @@
   "wallet.partly": "Noch nicht jede Wallet ist verfügbar.",
   "wallet.title": "Zu Wallet hinzufügen",
   "wallet.unavailable": "Wallet-Pässe sind noch nicht verfügbar. Lade bis dahin den QR-Code oder die Visitenkarte über das Teilen-Menü herunter.",
-  "walletPage.description": "Karte ansehen, drehen und verwalten – Wallet-Pässe und Kontaktkarte an einem Ort.",
+  "walletPage.description": "Sieh dir deine private ROUT-Karte und deine Profilkarten an einem Ort an, dreh sie um und verwalte sie.",
   "walletPage.loading": "Karte wird geladen…",
   "walletPage.noHandle": "Wähle zuerst einen Benutzernamen, um deine Karte zu erstellen.",
   "walletPage.tabCard": "ROUT-Karte",
@@ -1880,5 +1880,7 @@
   "console.aiPrompts.changes.markFull": "Vollständiger Prompt erledigt",
   "console.aiPrompts.changes.body": "Deine Einstellungen haben sich seit deinem letzten Prompt geändert. Dieser Prompt passt nur das an, ohne deinen Login neu zu bauen.",
   "console.aiPrompts.changes.markDone": "Änderung erledigt",
-  "console.aiPrompts.changes.none": "Keine Änderungen seit deinem letzten Prompt."
+  "console.aiPrompts.changes.none": "Keine Änderungen seit deinem letzten Prompt.",
+  "card.ownerMissing": "Deine ROUT-Karte erscheint, sobald dein Profil öffentlich und verifiziert ist. Aktiviere dann die Zwei-Schritt-Verifizierung und beanspruche deine Karte.",
+  "card.descriptionKey": "Deine private ROUT-Karte in 3D. Ziehen oder tippen zum Umdrehen; dein sicherer QR ist auf der Rückseite und erscheint erst nach Bestätigung."
 }

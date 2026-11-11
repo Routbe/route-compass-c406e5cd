@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMyHandle } from "@/hooks/useMyHandle";
 
 const TITLE = "Mijn ROUT-kaart | ROUT";
-const DESC = "Bekijk en beheer je ROUT-kaart, wallet-passen en contactkaart.";
+const DESC = "Bekijk en beheer je privé ROUT-kaart en je profielkaarten.";
 
 export const Route = createFileRoute("/_authenticated/wallet")({
   head: () => ({

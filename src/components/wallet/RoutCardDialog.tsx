@@ -566,7 +566,7 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
           <DialogTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5" aria-hidden /> {t("card.title")}
           </DialogTitle>
-          <DialogDescription>{t("card.description")}</DialogDescription>
+          <DialogDescription>{vault === "key" ? t("card.descriptionKey", { defaultValue: "Je privé ROUT-kaart in 3D. Sleep of tik om te draaien; je beveiligde QR staat op de achterkant en verschijnt pas na bevestiging." }) : t("card.description")}</DialogDescription>
         </DialogHeader>
 
         <div
@@ -629,8 +629,11 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
           {!gyro && coarse && <Button type="button" size="sm" variant="ghost" className="gap-1.5" onClick={() => void enableGyro()}><Smartphone className="h-3.5 w-3.5" aria-hidden /> {t("card.gyro")}</Button>}
         </div>
 
-        {ownerState.owner ? (
+        {ownerState.owner || vault === "key" ? (
           <div className="grid gap-3">
+            {card === null && vault === "key" && (
+              <p className="rounded-xl border border-border p-3 text-xs text-muted-foreground">{t("card.ownerMissing", { defaultValue: "Je ROUT-kaart verschijnt zodra je profiel openbaar staat en geverifieerd is. Daarna zet je tweestapsverificatie aan en claim je je kaart." })}</p>
+            )}
             {card?.space !== "alias" && front && (
               <fieldset className="grid gap-2 rounded-xl border border-border p-3">
                 <legend className="px-1 text-sm font-semibold">{t("card.front.title")}</legend>
@@ -677,7 +680,7 @@ export function RoutCardDialog({ open, onOpenChange, handle, space, inline = fal
         </div>
         )}
 
-        {card && ownerState.owner && (
+        {card && ownerState.owner && card.space === "alias" && (
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border p-3">
             <p className="text-xs text-muted-foreground">
               {!ownerState.available
