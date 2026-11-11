@@ -4,7 +4,9 @@ import { storyFile, supportsStoryShare } from "@/lib/qa/native-share";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { CalendarDays, Check, Copy, Globe, HandCoins, Heart, MessageCircleQuestion, Radio, Share2, Wallet, ArrowUpRight } from "lucide-react";
+import { CalendarDays, Check, Copy, Globe, HandCoins, Heart, MessageCircleQuestion, Radio, Share2, Wallet, ArrowUpRight, QrCode, ShieldAlert, ShieldCheck } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { getMyCardSecurity } from "@/lib/wallet/wallet.functions";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/lib/router-compat";
 import { RoutCardDialog } from "@/components/wallet/RoutCardDialog";
@@ -262,21 +264,32 @@ function GuideDemo({ platform, step, preview }: { platform: Platform; step: numb
   );
 }
 
-/** Opens the ROUT card as a popup; the full manager lives on /wallet. */
+/** ROUT card status at a glance: state, last 4 digits, 2FA warning and quick actions. */
 export function CardWidget({ handle }: { handle: string | null | undefined }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const loadSec = useServerFn(getMyCardSecurity);
+  const [sec, setSec] = useState<Awaited<ReturnType<typeof getMyCardSecurity>> | null>(null);
+  useEffect(() => { if (handle) loadSec().then(setSec).catch(() => setSec(null)); }, [handle, loadSec, open]);
+  const state = sec?.state;
+  const label = state === "active" ? "Actief" : state === "frozen" ? "Bevroren" : state === "blocked" ? "Geblokkeerd" : "Nog geen kaart";
   return (
-    <section className="acrylic-card flex min-w-0 flex-col p-5">
-      <button type="button" disabled={!handle} onClick={() => setOpen(true)} className="group flex flex-1 flex-col text-left disabled:opacity-60">
-        <span className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          <span className="flex items-center gap-2"><Wallet className="h-3.5 w-3.5" aria-hidden /> {t("cardWidget.eyebrow")}</span>
-          <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
-        </span>
-        <span className="mt-4 font-display text-2xl leading-tight">{t("cardWidget.title")}</span>
-        <span className="mt-1.5 text-sm text-muted-foreground">{handle ? t("cardWidget.hint") : t("walletPage.noHandle")}</span>
-      </button>
-      <Link to="/wallet" className="mt-4 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">{t("cardWidget.manage")}</Link>
+    <section className="acrylic-card flex min-w-0 flex-col gap-3 p-5">
+      <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="flex items-center gap-2"><Wallet className="h-3.5 w-3.5" aria-hidden /> {t("cardWidget.eyebrow")}</span>
+        <span className={state === "active" ? "text-primary" : state ? "text-destructive" : ""}>{label}</span>
+      </div>
+      <div>
+        <p className="font-display text-2xl leading-tight">{t("cardWidget.title")}</p>
+        <p className="mt-1 font-mono text-xs tracking-widest text-muted-foreground">{sec?.cardNumber ? `•••• •••• ${sec.cardNumber.slice(-4)}` : handle ? t("cardWidget.hint") : t("walletPage.noHandle")}</p>
+      </div>
+      {sec && !sec.twoFactor && (
+        <Link to="/studio/account" className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-2 text-xs"><ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" aria-hidden /> Zet tweestapsverificatie aan om je kaart te gebruiken.</Link>
+      )}
+      <div className="mt-auto grid grid-cols-2 gap-2">
+        <Button type="button" size="sm" variant="outline" disabled={!handle} onClick={() => setOpen(true)} className="gap-1.5"><QrCode className="h-3.5 w-3.5" aria-hidden /> Kaart & QR</Button>
+        <Button asChild size="sm" variant={state === "active" ? "destructive" : "outline"} className="gap-1.5"><Link to="/wallet"><ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {state === "active" ? "Blokkeren" : t("cardWidget.manage")}</Link></Button>
+      </div>
       {handle ? <RoutCardDialog open={open} onOpenChange={setOpen} handle={handle} /> : null}
     </section>
   );
