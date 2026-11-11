@@ -5,7 +5,7 @@ import { themeOf } from "@/lib/profile";
 import { profileSurface } from "@/lib/profile-surface";
 import { fontPairingOf } from "@/lib/profile-design";
 import { ogHeadingFont } from "@/lib/og-fonts";
-import { askOgSvg } from "@/lib/og-ask-card";
+import { parseShareCardKind, parseShareCardLang, shareCardSvg } from "@/lib/og-action-card";
 import { sanitizeHandleInput } from "@/lib/validations/sanitizeHandle";
 
 /**
@@ -97,11 +97,14 @@ export const Route = createFileRoute("/api_/public/og/$handle")({
         // Both formats therefore use the same first-party/proxied inline photo.
         const inlineAvatar = avatarUrl ? await fetchImageAsDataUri(avatarUrl, origin) : null;
 
-        const askCard = new URL(request.url).searchParams.get("card") === "ask";
+        const search = new URL(request.url).searchParams;
+        // Action links (ask/donate/tip/booking) get their own NGL-style invitation card.
+        const kind = space === "workspace" ? null : parseShareCardKind(search.get("card"));
+        const lang = parseShareCardLang(search.get("lang"));
         const base = space === "alias" ? `rout.be/u/${handle}` : `rout.be/${handle}`;
         const build = () =>
-          askCard
-            ? askOgSvg({ handle, name, avatarUrl: inlineAvatar, accent, title: "Stuur me een anonieme vraag", placeholder: "Typ hier je anonieme bericht…", cta: "Tik om anoniem te sturen", urlLabel: `${base}/ask` })
+          kind
+            ? shareCardSvg({ kind, lang, handle, name, avatarUrl: inlineAvatar, urlLabel: `${base}/${kind}` })
             : ogSvg({ handle, name, tagline, accent, ...design, bg: String(design.bg), avatarUrl: inlineAvatar, ...(urlLabel ? { urlLabel } : {}) });
 
         if (!wantsSvg) {
@@ -119,7 +122,9 @@ export const Route = createFileRoute("/api_/public/og/$handle")({
             });
           } catch (error) {
             console.error("og png render failed", error);
-            // Val terug op de vector zodat de kaart nooit helemaal wegvalt.
+            // A .png URL must always answer with a PNG (Snapchat/WhatsApp ignore SVG):
+            // fall back to the static ROUT card, uncached so the next crawl retries.
+            return new Response(null, { status: 302, headers: { location: `${origin}/brand/og/home-${lang}.png`, "cache-control": "no-store" } });
           }
         }
 
