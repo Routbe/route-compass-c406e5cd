@@ -65,13 +65,6 @@ export const completeStepUp = createServerFn({ method: "POST" })
       && !(data.method === "sms" && action === CARD_SCAN_ACTION)) {
       throw new Error("Deze verificatiemethode is hier niet toegestaan.");
     }
-    // Only methods this account may use for this action (scanning needs a real second factor).
-    {
-      const { enrolledFactors } = await import("./step-up.server");
-      if (data.method !== "passkey" && !allowedStepUpMethods(await enrolledFactors(context.userId), action).includes(data.method)) {
-        throw new Error("Deze verificatiemethode is hier niet toegestaan.");
-      }
-    }
     if (data.method === "backup" || data.method === "password") {
       const { hitRateLimit } = await import("@/lib/rate-limit-db.server");
       const limit = await hitRateLimit("step-up-secret", context.userId, { limit: 5, windowSec: 15 * 60 }, { failClosed: true });
