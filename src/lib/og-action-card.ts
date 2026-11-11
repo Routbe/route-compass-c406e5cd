@@ -106,12 +106,16 @@ export function shareCardSvg(input: { kind: ShareCardKind; lang: ShareCardLang; 
   const title = balancedTitle(copy.title, 25);
   const titleY = title.length === 1 ? Y + 162 : Y + 150;
   const titleSvg = title.map((l, i) => `<text x="${cx}" y="${titleY + i * 42}" text-anchor="middle" font-family="Inter" font-weight="800" font-size="38" fill="#ffffff">${escapeXml(l)}</text>`).join("");
-  const handleY = titleY + (title.length - 1) * 42 + 38;
+  const handleY = titleY + (title.length - 1) * 42 + 44;
   const body = wrapLines(copy.body, 34, 2);
   const bodyTop = Y + HEAD + BODY / 2 - (body.length - 1) * 16 + 10;
   const bodySvg = body.map((l, i) => `<text x="${cx}" y="${bodyTop + i * 32}" text-anchor="middle" font-family="Inter" font-weight="500" font-size="28" fill="#7a746e">${escapeXml(l)}</text>`).join("");
   const pillY = Y + HEAD + BODY + 26;
   const cta = escapeXml(copy.cta.length > 36 ? `${copy.cta.slice(0, 35)}…` : copy.cta);
+  // Inter Bold 25 px ≈ 14 px per character; arrow + gap sit left of the centred text.
+  const textW = Math.min(copy.cta.length, 36) * 14;
+  const pillW = Math.min(W, Math.max(380, textW + 120));
+  const arrowX = cx + 16 - textW / 2 - 26;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
@@ -129,9 +133,9 @@ export function shareCardSvg(input: { kind: ShareCardKind; lang: ShareCardLang; 
     <text x="${cx}" y="${handleY}" text-anchor="middle" font-family="Inter" font-weight="600" font-size="24" fill="#ffffff" fill-opacity="0.9">@${escapeXml(handle)}</text>
     ${bodySvg}
   </g>
-  <rect x="${cx - 260}" y="${pillY}" width="520" height="64" rx="32" fill="#ffffff"/>
-  <path d="M${cx - 222} ${pillY + 40} l10 -16 l10 16 m-10 -16 v20" stroke="${c1}" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="${cx + 12}" y="${pillY + 42}" text-anchor="middle" font-family="Inter" font-weight="700" font-size="25" fill="#131211">${cta}</text>
+  <rect x="${cx - pillW / 2}" y="${pillY}" width="${pillW}" height="64" rx="32" fill="#ffffff"/>
+  <path d="M${arrowX - 10} ${pillY + 40} l10 -16 l10 16 m-10 -16 v20" stroke="${c1}" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="${cx + 16}" y="${pillY + 42}" text-anchor="middle" font-family="Inter" font-weight="700" font-size="25" fill="#131211">${cta}</text>
   <text x="${cx}" y="${pillY + 108}" text-anchor="middle" font-family="Inter" font-weight="600" font-size="22" fill="#ffffff" fill-opacity="0.85">${escapeXml(input.urlLabel)}</text>
 </svg>`;
 }
