@@ -1,9 +1,9 @@
 /*
  * Workspace materials (signed-in tools, Studio and QR only).
  * - glass: the imported cascade, untouched.
- * - mechanical: calm opaque surfaces, hairline edges, pill controls. Surfaces
- *   stay flat; keys are real keycaps: a lit top edge, a solid key wall below,
- *   a short contact shadow, and a press that travels exactly the wall height.
+ * - mechanical (default): calm opaque surfaces, hairline edges. Keys are classic
+ *   keyboard keys: solid cap, hard wall below, no glow/sheen/blur, and a press
+ *   that travels exactly the wall height.
  * Member artwork (profiles, QR, exports, previews) is a scope limit and never restyled.
  */
 :root {
