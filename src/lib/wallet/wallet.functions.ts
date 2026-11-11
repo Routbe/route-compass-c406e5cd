@@ -310,14 +310,17 @@ export const setMyCardFrozen = createServerFn({ method: "POST" })
     const { myRootCard, memberHasTwoFactor } = await import("./card-owner.server");
     const mine = own.space === "root" ? await myRootCard(context.userId) : null;
     if (mine?.state === "blocked") return { frozen: true, blocked: true };
-    if (!data.frozen) {
-      if (!(await memberHasTwoFactor(context.userId))) throw new Error("two_factor_required");
-      const { ensureStepUpSession, consumeStepUp } = await import("@/lib/auth/step-up.server");
-      await ensureStepUpSession(context.userId, "card_lifecycle");
-      await consumeStepUp();
-    }
+    // Freezing and thawing both need 2FA and a fresh, single-use verification (zero-trust rule).
+    if (!(await memberHasTwoFactor(context.userId))) throw new Error("two_factor_required");
+    const { ensureStepUpSession, consumeStepUp } = await import("@/lib/auth/step-up.server");
+    await ensureStepUpSession(context.userId, "card_lifecycle");
+    await consumeStepUp();
     const { setCardFrozen } = await import("./card-freeze.server");
     await setCardFrozen(own.serial, context.userId, data.frozen, mine?.keySerial ? [mine.keySerial] : []);
+    if (mine?.keySerial) {
+      const { setGoogleKeyPassState } = await import("./google-wallet-sync.server");
+      await setGoogleKeyPassState([mine.keySerial], data.frozen ? "INACTIVE" : "ACTIVE", process.env as Record<string, string | undefined>);
+    }
     if (data.frozen) {
       const { closeCardUnlock } = await import("./card-unlock.server");
       await closeCardUnlock(context.userId);
@@ -397,6 +400,10 @@ export const blockMyCard = createServerFn({ method: "POST" })
       if ((err as { statusCode?: number }).statusCode === 503) return { ok: false as const, error: "unavailable" as const };
       throw err;
     }
+    if (mine.keySerial) {
+      const { setGoogleKeyPassState } = await import("./google-wallet-sync.server");
+      await setGoogleKeyPassState([mine.keySerial], "INACTIVE", process.env as Record<string, string | undefined>);
+    }
     const { closeCardUnlock } = await import("./card-unlock.server");
     await closeCardUnlock(context.userId);
     const { recordSecurityEvent } = await import("@/lib/audit-log.server");
@@ -429,6 +436,10 @@ export const replaceMyCard = createServerFn({ method: "POST" })
     } catch (err) {
       if ((err as { statusCode?: number }).statusCode === 503) return { ok: false as const, error: "unavailable" as const };
       throw err;
+    }
+    if (mine.keySerial) {
+      const { setGoogleKeyPassState } = await import("./google-wallet-sync.server");
+      await setGoogleKeyPassState([mine.keySerial], "INACTIVE", process.env as Record<string, string | undefined>);
     }
     const { closeCardUnlock } = await import("./card-unlock.server");
     await closeCardUnlock(context.userId);
