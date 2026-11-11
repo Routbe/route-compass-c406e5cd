@@ -181,7 +181,8 @@ export async function fetchStatus(provider: string, handle: string): Promise<Int
       const lang = j?.data?.languages?.[0];
       if (!j?.data) return null;
       return {
-        title: lang ? `Codeert vooral in ${lang.name}` : "Aan het coderen",
+        // A 7-day summary, never presented as "coding right now".
+        title: lang ? `Codeert vooral in ${lang.name} (7 dagen)` : "Codeerstatistiek (7 dagen)",
         subtitle: j.data.human_readable_daily_average ? `${j.data.human_readable_daily_average} per dag` : undefined,
         url: `https://wakatime.com/@${handle}`,
       };
@@ -209,8 +210,12 @@ export async function fetchStatus(provider: string, handle: string): Promise<Int
       const acct = await mastodonAccount(handle);
       if (!acct) return null;
       const domain = handle.split("@")[1]!;
+      // last_status_at is only a date; the newest own post gives the real moment.
+      const latest = acct.id
+        ? ((await getJson(`https://${domain}/api/v1/accounts/${encodeURIComponent(acct.id)}/statuses?limit=1&exclude_replies=true&exclude_reblogs=true`)) as { created_at?: string }[] | null)
+        : null;
       return {
-        lastActiveAt: acct.last_status_at ?? undefined,
+        lastActiveAt: latest?.[0]?.created_at ?? undefined,
         title: acct.display_name || `@${handle}`,
         subtitle: `@${handle.split("@")[0]} · ${domain}`,
         bio: stripHtml(acct.note ?? "").slice(0, 300),
@@ -343,7 +348,7 @@ export async function fetchStatus(provider: string, handle: string): Promise<Int
   }
 }
 
-type MastodonAccount = { display_name?: string; note?: string; url?: string; avatar?: string; avatar_static?: string; followers_count?: number; last_status_at?: string | null };
+type MastodonAccount = { id?: string; display_name?: string; note?: string; url?: string; avatar?: string; avatar_static?: string; followers_count?: number; last_status_at?: string | null };
 
 async function mastodonAccount(handle: string): Promise<MastodonAccount | null> {
   const { isPublicHost } = await import("./open-web-rules");

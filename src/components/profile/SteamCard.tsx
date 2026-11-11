@@ -5,7 +5,7 @@ import { cardEffectClasses, type SteamStatus } from "@/lib/steam-presence";
 
 type Theme = { card: string; border: string; text: string; muted: string };
 
-/** Steam live card: shown only while the owner is online or in game. */
+/** Steam live card: shown only while the owner is actually playing. */
 export function SteamCard({ handle, theme, effects }: { handle: string; theme: Theme; effects: boolean }) {
   const { t } = useTranslation();
   const q = useQuery({
@@ -18,7 +18,7 @@ export function SteamCard({ handle, theme, effects }: { handle: string; theme: T
     staleTime: 60_000,
   });
   const d = q.data;
-  if (!d || d.state === "offline") return null;
+  if (!d || d.state !== "in-game") return null;
   const live = d.state === "in-game";
   const avatar = proxied(d.avatar);
   const body = (

@@ -186,7 +186,9 @@ export async function removeCalendar(userId: string, id: string) {
 }
 
 export async function syncNow(userId: string, id: string) {
-  await sql`update public.connected_calendars set last_synced_at = null where id = ${id}::uuid and user_id = ${userId}::uuid`;
+  const owned = (await sql`update public.connected_calendars set last_synced_at = null where id = ${id}::uuid and user_id = ${userId}::uuid returning id`) as unknown[];
+  // Only the owner's own calendar is ever synced.
+  if (!owned.length) return;
   const { syncCalendarIds } = await import("./recompute.server");
   await syncCalendarIds([id]);
   await recomputeUser(userId);
