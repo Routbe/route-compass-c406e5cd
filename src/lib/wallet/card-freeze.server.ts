@@ -90,14 +90,18 @@ export async function blockCard(serial: string, userId: string, reason: "lost" |
   }
 }
 
-/** Current card generation (0 = original numbers); unknown storage counts as 0. */
+/** Current card generation (0 = original numbers); only a missing table counts as 0, other errors fail closed. */
 export async function cardGeneration(userId: string): Promise<number> {
   try {
     const rows = await sql.query("select public.rout_card_generation($1::uuid) as g", [userId]);
     const g = Number(rows[0]?.g ?? 0);
-    return Number.isInteger(g) && g >= 0 ? g : 0;
-  } catch {
-    return 0;
+    if (!Number.isInteger(g) || g < 0) throw new Error("invalid card generation");
+    return g;
+  } catch (err) {
+    // Only a database without the generation table means "never replaced"; any other
+    // failure must not silently fall back to the original (blocked) card numbers.
+    if (missingSchema(err)) return 0;
+    throw err;
   }
 }
 
