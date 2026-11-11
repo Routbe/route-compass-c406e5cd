@@ -1,8 +1,10 @@
 /**
- * Secure QR token for the back of the ROUT Card (v2). Pure WebCrypto, no I/O.
+ * Secure QR token for the back of the ROUT Card (v3). Pure WebCrypto, no I/O.
  *
- * token = base64url(JSON payload) "." base64url(HMAC-SHA256(key, "rout-card-qr:v2|" + payload))
- * payload = { v: 2, h: handle, s: "r"|"a", iat: ms, exp: ms, n: 128-bit nonce }
+ * token = base64url(JSON payload) "." base64url(HMAC-SHA256(key, "rout-card-qr:v3|" + payload))
+ * payload = { v: 3, h: handle, s: "r"|"a", c: card tag, iat: ms, exp: ms, n: 128-bit nonce }
+ * The card tag binds the token to one card number: after a replacement an
+ * unused token of the old card never verifies against the new one.
  * Lifetime is exactly 60 s; the nonce makes every token single-use once the
  * server records it (see card_token_uses). Signature checks are constant time.
  */
@@ -12,8 +14,9 @@ export const SECURE_ROTATE_MS = 45_000;
 const CLOCK_SKEW_MS = 5_000;
 const HANDLE = /^[\w.-]{1,100}$/;
 const NONCE = /^[A-Za-z0-9_-]{22}$/;
+const CARD_TAG = /^[0-9a-f]{16}$/;
 
-export type SecurePayload = { v: 2; h: string; s: "r" | "a"; iat: number; exp: number; n: string };
+export type SecurePayload = { v: 3; h: string; s: "r" | "a"; c: string; iat: number; exp: number; n: string };
 
 const enc = new TextEncoder();
 
@@ -36,17 +39,18 @@ function fromB64url(s: string): Uint8Array | null {
 async function mac(key: Uint8Array, body: string): Promise<Uint8Array> {
   if (key.byteLength < 32) throw new Error("token key too short");
   const k = await crypto.subtle.importKey("raw", key as BufferSource, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return new Uint8Array(await crypto.subtle.sign("HMAC", k, enc.encode(`rout-card-qr:v2|${body}`)));
+  return new Uint8Array(await crypto.subtle.sign("HMAC", k, enc.encode(`rout-card-qr:v3|${body}`)));
 }
 
 export function newNonce(): string {
   return b64url(crypto.getRandomValues(new Uint8Array(16)));
 }
 
-export async function signSecureToken(key: Uint8Array, p: { handle: string; space: "root" | "alias"; now: number; nonce?: string }): Promise<{ token: string; payload: SecurePayload }> {
+export async function signSecureToken(key: Uint8Array, p: { handle: string; space: "root" | "alias"; card: string; now: number; nonce?: string }): Promise<{ token: string; payload: SecurePayload }> {
   const h = p.handle.replace(/^@/, "").toLowerCase();
   if (!HANDLE.test(h)) throw new Error("invalid handle");
-  const payload: SecurePayload = { v: 2, h, s: p.space === "alias" ? "a" : "r", iat: p.now, exp: p.now + SECURE_TTL_MS, n: p.nonce ?? newNonce() };
+  if (!CARD_TAG.test(p.card)) throw new Error("invalid card tag");
+  const payload: SecurePayload = { v: 3, h, s: p.space === "alias" ? "a" : "r", c: p.card, iat: p.now, exp: p.now + SECURE_TTL_MS, n: p.nonce ?? newNonce() };
   const body = b64url(enc.encode(JSON.stringify(payload)));
   return { token: `${body}.${b64url(await mac(key, body))}`, payload };
 }
@@ -69,7 +73,7 @@ export async function verifySecureToken(key: Uint8Array, token: string, now: num
   } catch {
     return { ok: false, reason: "invalid" };
   }
-  if (p.v !== 2 || !HANDLE.test(p.h) || (p.s !== "r" && p.s !== "a") || !NONCE.test(p.n) || !Number.isSafeInteger(p.iat) || p.exp !== p.iat + SECURE_TTL_MS) {
+  if (p.v !== 3 || !HANDLE.test(p.h) || typeof p.c !== "string" || !CARD_TAG.test(p.c) || (p.s !== "r" && p.s !== "a") || !NONCE.test(p.n) || !Number.isSafeInteger(p.iat) || p.exp !== p.iat + SECURE_TTL_MS) {
     return { ok: false, reason: "invalid" };
   }
   if (p.iat > now + CLOCK_SKEW_MS || now > p.exp) return { ok: false, reason: "expired" };
