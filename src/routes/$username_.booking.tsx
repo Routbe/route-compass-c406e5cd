@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getNextBookingSlots } from "@/lib/booking-engine/booking.functions";
 import { validBookingStart } from "@/lib/booking-engine/selection";
 import BookPublic from "@/components/imported-pages/BookPublic";
+import { shareCardMeta } from "@/lib/og-action-card";
 
 export const Route = createFileRoute("/$username_/booking")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -15,13 +16,13 @@ export const Route = createFileRoute("/$username_/booking")({
     if (!event) throw notFound();
     return { eventTypeId: event.eventTypeId, title: event.title };
   },
-  head: ({ loaderData }) => ({ meta: [
+  head: ({ loaderData, params }) => ({ meta: [
     { title: `${loaderData?.title ?? "Afspraak boeken"} | ROUT` },
     { name: "description", content: "Kies een beschikbaar tijdstip en boek je afspraak rechtstreeks via ROUT." },
     { property: "og:title", content: `${loaderData?.title ?? "Afspraak boeken"} | ROUT` },
     { property: "og:description", content: "Kies een beschikbaar tijdstip en boek je afspraak rechtstreeks via ROUT." },
     { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
+    ...shareCardMeta(params.username.replace(/^@/, ""), "booking", "nl"),
   ] }),
   component: BookingRoute,
 });
